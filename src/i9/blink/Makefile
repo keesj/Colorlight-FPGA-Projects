@@ -1,6 +1,7 @@
 TARGET=blink
 TOP=blink
 
+ECPDAP_OPTS=-f 500
 OBJS+=blink.v rst_gen.v
 
 TRELLIS=/usr/local/share/trellis
@@ -18,10 +19,14 @@ $(TARGET).bit: $(TARGET)_out.config
 
 ${TARGET}.svf : ${TARGET}.bit
 
-prog: ${TARGET}.svf
-	dapprog ${TARGET}.svf
+prog: ${TARGET}.bit
+	ecpdap $(ECPDAP_OPTS) program ${TARGET}.bit
+
+flash: $(TARGET).bit
+  #  ecpdap flash unprotect
+	ecpdap $(ECPDAP_OPTS) flash write $(TARGET.bit)
 
 clean:
-	rm -f *.svf *.bit *.config *.ys
+	rm -f *.svf *.bit *.config *.ys *.json
 
 .PHONY: prog clean
