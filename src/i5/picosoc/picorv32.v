@@ -26,8 +26,8 @@
 // `default_nettype none
 // `define DEBUGNETS
 // `define DEBUGREGS
-`define DEBUGASM
-`define DEBUG
+// `define DEBUGASM
+// `define DEBUG
 
 `ifdef DEBUG
   `define debug(debug_command) debug_command
