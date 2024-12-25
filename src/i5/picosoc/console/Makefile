@@ -1,8 +1,8 @@
 all: firmware.hex
 
 PREFIX=/opt/riscv/bin/riscv64-unknown-elf-
-# apt-get install gcc-riscv64-linux-gnu
-PREFIX=/usr/bin/riscv64-linux-gnu-
+# apt-get install gcc-riscv64-unknown-elf
+PREFIX=/usr/bin/riscv64-unknown-elf-
 clean:
 	rm -f firmware.hex firmware.elf firmware.bin
 
