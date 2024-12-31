@@ -2,7 +2,7 @@ module top(
     input clk_25mhz,
     output [7:0] led,
     output UART_TX,
-    input UART_RX,
+    input UART_RX
 );
 
 wire clk;
