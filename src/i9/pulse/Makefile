@@ -1,8 +1,8 @@
-TARGET=blink
-TOP=blink
+TARGET=pulse
+TOP=pulse
 
 ECPDAP_OPTS=-f 500
-OBJS+=blink.v rst_gen.v
+OBJS+=pulse.v rst_gen.v
 
 TRELLIS=/usr/local/share/trellis
 
