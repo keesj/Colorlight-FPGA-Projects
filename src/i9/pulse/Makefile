@@ -17,6 +17,10 @@ $(TARGET)_out.config: $(TARGET).json
 $(TARGET).bit: $(TARGET)_out.config
 	ecppack --svf ${TARGET}.svf $< $@
 
+sim:
+	verilator --binary --trace pulse_tb.v pulse.v
+	./obj_dir/Vpulse_tb
+
 ${TARGET}.svf : ${TARGET}.bit
 
 prog: ${TARGET}.bit
