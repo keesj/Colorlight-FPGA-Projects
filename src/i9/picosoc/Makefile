@@ -29,6 +29,8 @@ sim:
 		  -Wno-WIDTHEXPAND \
 		  -Wno-WIDTHXZEXPAND \
 		  -Wno-PINMISSING \
+			--trace \
+			--trace-fst \
 			--binary --top $(TB_TOP) $(TB_SRC)
 
 isim:$(TB_SRC)

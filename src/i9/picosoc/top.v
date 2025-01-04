@@ -1,6 +1,7 @@
 module top(
     input clk_25mhz,
     output [7:0] led,
+    output user_led, // on board
     output UART_TX,
     input UART_RX
 );
@@ -13,6 +14,7 @@ pll pll(
 attosoc soc(
     .clk(clk),
     .led(led),
+    .user_led(user_led),
     .uart_tx(UART_TX),
     .uart_rx(UART_RX)
 );

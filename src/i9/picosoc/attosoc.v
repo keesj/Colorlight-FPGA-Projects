@@ -27,12 +27,20 @@
 module attosoc (
 	input clk,
 	output reg [7:0] led,
+	output reg user_led,
 	output uart_tx,
 	input uart_rx
 );
 
+
 	reg [5:0] reset_cnt = 0;
 	wire resetn = &reset_cnt;
+
+  blink b(
+    .clk(clk),
+    .rstn(resetn),
+    .out(user_led)
+  );
 
 	always @(posedge clk) begin
 		reset_cnt <= reset_cnt + !resetn;
@@ -166,4 +174,33 @@ module picosoc_regs (
 
 	assign rdata1 = regs[raddr1[4:0]];
 	assign rdata2 = regs[raddr2[4:0]];
+endmodule
+
+module blink(
+  input clk,
+  input rstn,
+  output reg out);
+
+  //localparam FREQ  = 25_000_000;
+  localparam FREQ  = 12_500_000;
+  localparam MAX   = FREQ/1;
+  localparam WIDTH = $clog2(FREQ);
+
+  reg [WIDTH-1:0] cnt;
+
+  wire toggle = cnt == MAX[WIDTH-1:0] - 1;
+
+  always @(posedge clk) begin
+    if (!rstn) begin
+        cnt <= 0;
+        out = 1'b0;
+    end else begin
+        cnt <= cnt +1;
+        if (toggle) begin
+          cnt <= 0;
+          out = !out;
+        end
+    end
+  end
+
 endmodule

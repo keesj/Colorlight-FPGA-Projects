@@ -17,7 +17,7 @@ EHXPLLL #(
         .CLKOP_ENABLE("ENABLED"),
         .CLKOP_DIV(48),
         .CLKFB_DIV(1),
-        .CLKI_DIV(2),
+        .CLKI_DIV(1), // 1 => clock in = clock out  (25Mhz) , 2 => 12.5 Mhz
         .FEEDBK_PATH("INT_OP")
     ) pll_i (
         .CLKI(clki),

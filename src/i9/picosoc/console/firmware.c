@@ -47,9 +47,7 @@ char getchar_prompt(char *prompt)
 }
 
 int main() {
-    // 1302: 9600 baud at 25MHz
-    // 108 : 115200 baud at 25MHz
-    reg_uart_clkdiv = 108;
+  reg_uart_clkdiv = 217;  /* 25e6 Hz / 115200 Baud rate*/
 	while (getchar_prompt("Press ENTER to continue..\n") != '\r') { /* wait */ }
 	
 	print("\n");
