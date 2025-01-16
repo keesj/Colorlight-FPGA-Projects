@@ -7,6 +7,7 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
 from migen import *
+import sys
 
 from litex_boards.targets import colorlight_i5 as board
 from litex_boards.platforms import colorlight_i5
@@ -66,6 +67,11 @@ def main():
         soc.add_spi_sdcard()
     if args.with_sdcard:
         soc.add_sdcard()
+
+    # The real work
+    led_out = soc.platform.request("user_led_n")
+    soc.specials += Instance("led", i_clk_i = ClockSignal(), i_rst_i = ResetSignal(), o_out_o = led_out )
+    soc.platform.add_source("led.v")
 
     builder = Builder(soc, **parser.builder_argdict)
     if args.build:

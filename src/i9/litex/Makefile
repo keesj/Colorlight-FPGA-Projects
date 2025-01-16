@@ -1,5 +1,6 @@
+default:synth
 prog:
-	./taret.py --load
+	./target.py --load
 
-build:
-	./taret.py --build
+synth:
+	./target.py --build
