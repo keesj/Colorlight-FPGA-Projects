@@ -52,8 +52,6 @@ module simpleuart_tb();
     $dumpfile("waves.vcd");
     $dumpvars(0,simpleuart_tb);
 
-
-
     tx_buf[11] = "h";
     tx_buf[10] = "e";
     tx_buf[9] = "l";
