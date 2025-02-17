@@ -49,8 +49,8 @@ module simpleuart (
 
 	assign reg_div_do = cfg_divider;
 
-	assign reg_dat_wait = reg_dat_we || (send_bitcnt || send_dummy);
-	assign reg_dat_do = recv_buf_valid ? recv_buf_data : ~0;
+	assign reg_dat_wait = reg_dat_we || send_bitcnt != 4'b0 || send_dummy;
+	assign reg_dat_do = recv_buf_valid ? { {3{8'h00}}, recv_buf_data} : ~0;
 
 	always @(posedge clk) begin
 		if (!resetn) begin
@@ -107,31 +107,33 @@ module simpleuart (
 	assign ser_tx = send_pattern[0];
 
 	always @(posedge clk) begin
-		if (reg_div_we)
+		if (reg_div_we != 4'b0)
 			send_dummy <= 1;
-		send_divcnt <= send_divcnt + 1;
 		if (!resetn) begin
 			send_pattern <= ~0;
 			send_bitcnt <= 0;
 			send_divcnt <= 0;
-			send_dummy <= 1;
+			send_dummy <= 0;
 		end else begin
-			if (send_dummy && !send_bitcnt) begin
+			send_divcnt <= send_divcnt + 1;
+			if (send_dummy && send_bitcnt ==4'b0) begin
 				send_pattern <= ~0;
 				send_bitcnt <= 15;
 				send_divcnt <= 0;
 				send_dummy <= 0;
 			end else
-			if (reg_dat_we && !send_bitcnt) begin
+			if (reg_dat_we && send_bitcnt == 4'b0) begin
 				send_pattern <= {1'b1, reg_dat_di[7:0], 1'b0};
 				send_bitcnt <= 10;
 				send_divcnt <= 0;
 			end else
-			if (send_divcnt > cfg_divider && send_bitcnt) begin
+			if (send_divcnt > cfg_divider && send_bitcnt != 4'b0) begin
 				send_pattern <= {1'b1, send_pattern[9:1]};
 				send_bitcnt <= send_bitcnt - 1;
 				send_divcnt <= 0;
+			end  else begin
 			end
+
 		end
 	end
 endmodule

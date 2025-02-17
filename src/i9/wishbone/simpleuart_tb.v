@@ -65,12 +65,7 @@ module simpleuart_tb();
     tx_buf[1] = "d";
     tx_buf[0] = "!";
     tx_buf_len = 12;
-    rst =0;
-    @(posedge clk);
-    rst =1;
-    @(posedge clk);
-    rst =0;
-    @(posedge clk);
+
 
     // uart init
   ser_rx = 0;
@@ -79,13 +74,22 @@ module simpleuart_tb();
 	reg_dat_we = 0; // write reg_dat_do
 	reg_dat_re = 0; // read reg
 	reg_dat_di = 32'h0;
+    rst =0;
+    @(posedge clk);
+    rst =1;
+    @(posedge clk);
+    rst =0;
+    @(posedge clk);
 
   //write divider
 	reg_div_di = 32'h00_00_00_10;
-	reg_div_we = 1;
-    repeat(10) @(posedge clk);
+	reg_div_we = ~0;
+  do begin
+      @ (posedge clk); // wait for output buffer to be ready
+	    reg_div_we = 0;
+  end while(reg_dat_wait);
+
   @(posedge clk);
-	reg_div_we = 0;
 
   //read divider
   @(posedge clk);
@@ -94,16 +98,20 @@ module simpleuart_tb();
   // send tx buffer to uart
   while(tx_buf_len > 0) begin
     $display("Buf %d", tx_buf_len);
-      while(reg_dat_wait) begin
+
+      do begin
         @ (posedge clk); // wait for output buffer to be ready
-      end
+      end while(reg_dat_wait);
+
       reg_dat_di = {24'h00_00_00, {tx_buf[tx_buf_len-1]}};
       reg_dat_we = 1;
-      @ (posedge clk);
-      while(reg_dat_wait) begin
-        @ (posedge clk); // wait for output buffer to be ready
-      end
-      reg_dat_we = 0;
+
+      do begin
+        @ (posedge clk); 
+        @ (posedge clk); 
+        reg_dat_we = 0;
+      end while(!reg_dat_wait);
+
       tx_buf_len = tx_buf_len -1;
   end
   

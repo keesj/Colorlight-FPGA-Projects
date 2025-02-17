@@ -1,12 +1,13 @@
-doit-uart-master_test:uart_master_tb.v uart_master.v simpleuart.v
-	iverilog -o $@ -g2012 $^
-	./$@
+default: doit-uart-master_test
 
-doit-uart-rxtx_test:simpleuart_rxtx_tb.v simpleuart.v
+.PHONY: doit-uart-master_test
+doit-uart-master_test:uart_master_tb.v uart_master.v simpleuart.v
+	verilator --top-module uart_master_tb --timing --lint-only $^
 	iverilog -o $@ -g2012 $^
 	./$@
 
 doit-uart-test:simpleuart_tb.v simpleuart.v
+	verilator --timing --lint-only $^
 	iverilog -o $@ -g2012 $^
 	./$@
 
