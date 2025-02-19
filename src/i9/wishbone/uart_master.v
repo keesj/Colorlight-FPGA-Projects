@@ -1,10 +1,22 @@
 module uart_master (
+  //Generic 
 	input clk,
   input rst,
+  // UART
+  input ser_rx,
+  output ser_tx,
+  
+  //WISHBONE 
+  output wire wb_cyc_i,
+  output wire wb_stb_i,
+  output wire wb_we_i,
+  output wire [31:0]  wb_addr_i,
+  output wire [31:0]  wb_data_i,
+  output wire [4-1:0] wb_sel_i,
 
-    // UART
-    input ser_rx,
-    output ser_tx);
+  input wire wb_ack_o,
+  input wire [31:0] wb_data_o
+  );
 
     // UART
 	reg   [3:0] uart_reg_div_we;
@@ -16,7 +28,6 @@ module uart_master (
 	reg  [31:0] uart_reg_dat_di;
 	wire [31:0] uart_reg_dat_do;
 	wire        uart_reg_dat_wait;
-    
 
   // uart instance
   simpleuart uart (
@@ -37,14 +48,51 @@ module uart_master (
 	.reg_dat_wait(uart_reg_dat_wait) // busy do not send data
 );
 
+wire [31:0] rw_address;
+wire [31:0] rw_data;
+wire rw_write;
+wire rw_valid;
+wire  rw_ready;
+
 reg [7:0] input_char;
 reg       input_char_valid;
 
 uart_wishbone_decode decode (
   .clk(clk),
   .rst(rst),
+  //data interface
   .data_in(input_char),
-  .data_in_valid(input_char_valid)
+  .data_in_valid(input_char_valid),
+  
+  //read and write commands
+  .rw_address(rw_address),
+  .rw_data(rw_data),
+  .rw_write(rw_write),
+  .rw_valid(rw_valid),
+  .rw_ready(rw_ready)
+);
+
+wishone_rw rw  (
+  .clk(clk),
+  .rst(rst),
+
+  //read and write commands
+  .rw_address(rw_address),
+  .rw_data(rw_data),
+  .rw_write(rw_write),
+  .rw_valid(rw_valid),
+  .rw_ready(rw_ready),
+
+  //wishbone
+  .wb_cyc_o(wb_cyc_i),
+  .wb_stb_o(wb_stb_i),
+  .wb_we_o(wb_we_i),
+  .wb_addr_o(wb_addr_i),
+  .wb_data_o(wb_data_i),
+  .wb_sel_o(wb_sel_i),
+
+  .wb_ack_i(wb_ack_o),
+  .wb_data_i(wb_data_o)
 );
 
 typedef enum logic [1:0] {
@@ -56,6 +104,7 @@ typedef enum logic [1:0] {
 
 uart_state_t uart_state;
 
+//UART RECIEVE
 always @(posedge clk) begin
     uart_reg_dat_re <= 0;
     input_char <= 8'h00;
@@ -142,8 +191,50 @@ module ascii2hex(
       "d": nibble = 4'hd;
       "e": nibble = 4'he;
       "f": nibble = 4'hf;
-      default:;
+      "A": nibble = 4'ha;
+      "B": nibble = 4'hb;
+      "C": nibble = 4'hc;
+      "D": nibble = 4'hd;
+      "E": nibble = 4'he;
+      "F": nibble = 4'hf;
+      default:
+           nibble = 4'h0;
     endcase
+  end
+endmodule
+
+module uart_wishbone_encode (
+  input logic clk,
+  input logic rst
+);
+endmodule
+
+module wishone_rw(
+  input logic clk,
+  input logic rst,
+  //commands
+  input [31:0] rw_address,
+  input [31:0] rw_data,
+  input rw_write,
+  input rw_valid,
+  output reg rw_ready,
+
+  //wishbone
+  output wire wb_cyc_o,
+  output wire wb_stb_o,
+  output wire wb_we_o,
+  output wire [31:0]  wb_addr_o,
+  output wire [31:0]  wb_data_o,
+  output wire [4-1:0] wb_sel_o,
+
+  input wire wb_ack_i,
+  input wire [31:0] wb_data_i
+);
+  always @(posedge clk) begin
+    if (rst) begin
+      rw_ready <= 1;
+    end else begin
+    end
   end
 endmodule
 
@@ -151,30 +242,37 @@ module uart_wishbone_decode (
   input logic clk,
   input logic rst,
 
+  //input
   input logic [7:0] data_in,
-  input logic data_in_valid);
+  input logic data_in_valid,
+  
+  //output
+  output [31:0] rw_address,
+  output [31:0] rw_data,
+  output reg rw_write,
+  output reg rw_valid,
+  input  rw_ready
+  );
 
   logic [7:0] cmd [18:0];
   logic [4:0] cmd_len;
 
-//  typedef enum logic [1:0] {
-//     DECODE_FILL  =     2'd0,
-//     DECODE_EVAL = 2'd1
-//  } decode_state_t ;
-
- 
   wire [31:0] address;
   wire [31:0] data;
 
+  assign rw_address = address;
+  assign rw_data = data;
   genvar i;
   generate
     for (i=0 ; i < 8 ; i++) begin
-      ascii2hex ai0 ( .ascii(cmd[i+1]), .nibble(address[31-i*4-:4]));
-      ascii2hex di0 ( .ascii(cmd[i+9]), .nibble(data[31-i*4-:4]));
+      ascii2hex address_decode0 ( .ascii(cmd[i+1]), .nibble(address[31-i*4-:4]));
+      ascii2hex data_decode0 ( .ascii(cmd[i+9]), .nibble(data[31-i*4-:4]));
     end
   endgenerate
 
   always @(posedge clk) begin
+    rw_write <= 0;
+    rw_valid <= 0;
     if (rst) begin
       //cmd = {18{8'hff}};
       cmd_len <= 0;
@@ -183,9 +281,7 @@ module uart_wishbone_decode (
         if (data_in >= 8'h20)  begin // accept value with an chat value above space char(' ')
           cmd[cmd_len] <=  data_in;
           cmd_len <= cmd_len +1;
-          //$display("Data valid %c cmd_len %d", data_in, cmd_len);
         end else if (data_in == "\n")  begin
-            //$display("CMD_LEN=%i %x",cmd_len, cmd[cmd_len-1]);
             case (cmd[0])
               "r": begin
                 //$display("READ CMD");
@@ -193,6 +289,12 @@ module uart_wishbone_decode (
                   8+1: begin
                     $display("Read address is 0x%08x", address);
                     cmd_len <=0;
+                    if (rw_ready) begin
+                      rw_write <= 0;
+                      rw_valid <= 1;
+                    end else begin
+                      $display("Skip read (RW BUSY)");
+                    end
                   end
                   default:
                     $display("Invalid length");
@@ -204,9 +306,15 @@ module uart_wishbone_decode (
                   16+1: begin
                     $display("Write address is 0x%08x value 0x%08x", address,data);
                     cmd_len <=0;
+                    if (rw_ready) begin
+                      rw_write <= 1;
+                      rw_valid <= 1;
+                    end else begin
+                      $display("Skip write (RW BUSY)");
+                    end
                   end
                   default:
-                    $display("Invalid lenght");
+                    $display("Invalid length");
                 endcase
               end
               default: begin
@@ -220,5 +328,4 @@ module uart_wishbone_decode (
       end
     end
   end
-
 endmodule

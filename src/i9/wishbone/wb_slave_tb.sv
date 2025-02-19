@@ -47,7 +47,7 @@ initial begin
   rst <= 0;
 
 
-  // wishbone write
+  // write cafebabe to address 1
   wb_sel <= 4'b1111;
   wb_stb <= 1;
   wb_cyc <= 1;
@@ -56,9 +56,12 @@ initial begin
   wb_data_w = 32'hcafebabe;
   @(posedge clk);
   while (!wb_ack) @(posedge clk);
+
   wb_cyc <= 0;
   wb_stb <= 0;
   @(posedge clk);
+
+  // write cbebecaca to address 2
   wb_stb <= 1;
   wb_cyc <= 1;
   wb_we <= 1'b1;
@@ -71,6 +74,7 @@ initial begin
   wb_stb <= 0;
   @(posedge clk);
 
+  //read back from address one
   wb_stb <= 1;
   wb_cyc <= 1;
   wb_we <= 1'b0;

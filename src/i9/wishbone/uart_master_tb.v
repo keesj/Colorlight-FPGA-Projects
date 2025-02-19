@@ -57,13 +57,49 @@ module uart_master_tb();
 	.reg_dat_wait(uart0_reg_dat_wait) // busy do not send data
 );
 
+  // wishbone master
+  reg wb_cyc;
+  reg wb_stb;
+  reg wb_we;
+  reg [31:0]  wb_addr;
+  reg [31:0]  wb_data_w;
+  reg [4-1:0] wb_sel;
+  wire wb_ack;
+  reg [31:0] wb_data_r;
+
   uart_master master (
 	.clk(clk),
 	.rst(rst),
 
 	.ser_tx(ser_rx),
-	.ser_rx(ser_tx)
+	.ser_rx(ser_tx),
+
+  .wb_cyc_i(wb_cyc),
+  .wb_stb_i(wb_stb),
+  .wb_we_i(wb_we),
+  .wb_addr_i(wb_addr),
+  .wb_data_i(wb_data_w),
+  .wb_sel_i(wb_sel),
+  .wb_ack_o(wb_ack),
+  .wb_data_o(wb_data_r)
   );
+
+  //wb slave
+  wb_slave  slave (
+  .clk_i(clk),
+  .rst_i(rst),
+
+  //wishbone
+  .wb_cyc_i(wb_cyc),
+  .wb_stb_i(wb_stb),
+  .wb_we_i(wb_we),
+  .wb_addr_i(wb_addr),
+  .wb_data_i(wb_data_w),
+  .wb_sel_i(wb_sel),
+
+  .wb_ack_o(wb_ack),
+  .wb_data_o(wb_data_r)
+);
 
     
   integer i;

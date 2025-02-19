@@ -8,6 +8,8 @@ $(BIT_FILE):synth
 flash:$(BIT_FILE)
 	ecpdap flash write $<
 
-
 synth:
 	./target.py --build
+
+sim:
+	./target.py --sim

@@ -1,7 +1,7 @@
 default: doit-uart-master_test
 
 .PHONY: doit-uart-master_test
-doit-uart-master_test:uart_master_tb.v uart_master.v simpleuart.v
+doit-uart-master_test:uart_master_tb.v uart_master.v simpleuart.v wb_slave.sv
 	verilator --top-module uart_master_tb --timing --lint-only $^
 	iverilog -o $@ -g2012 $^
 	./$@

@@ -14,6 +14,7 @@ from litex_boards.platforms import colorlight_i5
 
 from litex.soc.cores.clock import *
 from litex.soc.integration.soc_core import *
+from litex.soc.integration.soc import SoCRegion
 from litex.soc.integration.builder import *
 from litex.soc.cores.video import VideoHDMIPHY
 from litex.soc.cores.led import LedChaser
@@ -72,6 +73,27 @@ def main():
     led_out = soc.platform.request("user_led_n")
     soc.specials += Instance("led", i_clk_i = ClockSignal(), i_rst_i = ResetSignal(), o_out_o = led_out )
     soc.platform.add_source("led.v")
+
+    # wishbone slave
+    myslave =  Instance("myslave",
+                        i_clk_i = ClockSignal(),
+                        i_rst_i = ResetSignal(),
+                        i_cyc = Signal(name="wb_cyc_i")
+                        )
+#                        i_stb = "wb_stb_i,
+#                        i_we = "wb_we_i,
+##                        i_adr = "wb_addr_i,
+#                        i_dat_w = "wb_data_i,
+#                        i_sel = "wb_sel_i,
+#                        o_ack = "wb_ack_o,
+#                        o_dat_r = "wb_data_o)
+    soc.specials += myslave
+    soc.platform.add_source("slave.v")
+    soc.bus.add_slave(name="myslave", slave=myslave, region=SoCRegion(
+           origin = 0x2000_0000,
+           size   = 32*4,
+     ))
+    #soc.bus.add_slave(name="myslave", slave=self.ws2812.bus, region=SoCRegion(
 
     builder = Builder(soc, **parser.builder_argdict)
     if args.build:

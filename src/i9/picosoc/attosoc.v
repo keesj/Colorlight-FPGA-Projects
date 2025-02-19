@@ -146,11 +146,11 @@ module attosoc (
 		.reg_div_di  (mem_wdata),
 		.reg_div_do  (simpleuart_reg_div_do),
 
-		.reg_dat_we  (simpleuart_reg_dat_sel ? mem_wstrb[0] : 1'b 0),
-		.reg_dat_re  (simpleuart_reg_dat_sel && !mem_wstrb),
-		.reg_dat_di  (mem_wdata),
-		.reg_dat_do  (simpleuart_reg_dat_do),
-		.reg_dat_wait(simpleuart_reg_dat_wait)
+		.reg_dat_we  (simpleuart_reg_dat_sel ? mem_wstrb[0] : 1'b 0),//mem_wstrb -> write data
+		.reg_dat_re  (simpleuart_reg_dat_sel && !mem_wstrb),         //when accessing the memory and not writing (read operation)
+		.reg_dat_di  (mem_wdata),                                    //data to uart
+		.reg_dat_do  (simpleuart_reg_dat_do),                        //data read from UART ip block
+		.reg_dat_wait(simpleuart_reg_dat_wait)                       //busy flag
 );
 
 endmodule
