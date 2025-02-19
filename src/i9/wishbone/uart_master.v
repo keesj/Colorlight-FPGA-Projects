@@ -220,20 +220,67 @@ module wishone_rw(
   output reg rw_ready,
 
   //wishbone
-  output wire wb_cyc_o,
-  output wire wb_stb_o,
-  output wire wb_we_o,
-  output wire [31:0]  wb_addr_o,
-  output wire [31:0]  wb_data_o,
-  output wire [4-1:0] wb_sel_o,
+  output reg wb_cyc_o,
+  output reg wb_stb_o,
+  output reg wb_we_o,
+  output reg [31:0]  wb_addr_o,
+  output reg [31:0]  wb_data_o,
+  output reg [4-1:0] wb_sel_o,
 
   input wire wb_ack_i,
   input wire [31:0] wb_data_i
 );
+
+  typedef enum logic [1:0] {
+    WB_INIT  =     2'd0,
+    WB_WAIT_FOR_CMD  = 2'd1,
+    WB_READ  = 2'd2,
+    WB_WAIT_FOR_WB_READY  = 2'd3
+  } wb_state_t;
+
+  wb_state_t state;
+
   always @(posedge clk) begin
     if (rst) begin
       rw_ready <= 1;
+      state <= WB_INIT;
     end else begin
+      case(state) 
+          WB_INIT: begin
+            wb_cyc_o <=0;
+            wb_stb_o <=0;
+            wb_we_o <=0;
+            wb_addr_o <=0;
+            wb_data_o <=0;
+            wb_sel_o <=0;
+            state <= WB_WAIT_FOR_CMD;
+          end
+          WB_WAIT_FOR_CMD: begin
+            if (rw_valid) begin // initiate transaction
+              wb_addr_o <= rw_address;
+              if (rw_write) begin
+                wb_we_o <=1;
+                wb_data_o <= rw_data;
+              end else begin
+                wb_we_o <=0;
+              end
+              wb_sel_o <= 1;
+              wb_stb_o <= 1;
+              wb_cyc_o <= 1;
+              state <= WB_WAIT_FOR_WB_READY;
+            end
+          end
+          WB_WAIT_FOR_WB_READY: begin
+            if  (wb_ack_i) begin
+              wb_sel_o <= 0;
+              wb_stb_o <= 0;
+              wb_cyc_o <= 0;
+              state <= WB_WAIT_FOR_CMD;
+            end
+          end
+          default:
+             $display("WB invalid state ");
+    endcase
     end
   end
 endmodule
