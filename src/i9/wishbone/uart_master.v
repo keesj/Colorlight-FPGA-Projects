@@ -1,5 +1,4 @@
 module uart_master (
-    //Generic 
     input  clk,
     input  rst,
     // UART
@@ -99,13 +98,13 @@ module uart_master (
   );
 
   typedef enum logic [1:0] {
-    UART_INIT      = 2'd0,
-    UART_SET_DIV   = 2'd1,
-    UART_READ      = 2'd2,
-    UART_READ_DONE = 2'd3
-  } uart_state_t;
+    UART_IN_INIT      = 2'd0,
+    UART_IN_SET_DIV   = 2'd1,
+    UART_IN_READ      = 2'd2,
+    UART_IN_READ_DONE = 2'd3
+  } uart_in_state_t;
 
-  uart_state_t uart_state;
+  uart_in_state_t uart_in_state;
 
   //UART RECIEVE
   always @(posedge clk) begin
@@ -118,31 +117,31 @@ module uart_master (
       uart_reg_dat_we = 0;  // write uart0_reg_dat_do
       uart_reg_dat_re <= 0;  // read reg
       uart_reg_dat_di = 32'h0;
-      uart_state = UART_INIT;
+      uart_in_state = UART_IN_INIT;
     end else begin
-      case (uart_state)
-        UART_INIT: begin
+      case (uart_in_state)
+        UART_IN_INIT: begin
           uart_reg_div_di = 32'h00_00_00_08;
           uart_reg_div_we = 4'b1111;
-          uart_state = UART_SET_DIV;
+          uart_in_state = UART_IN_SET_DIV;
         end
-        UART_SET_DIV: begin
-          uart_state = UART_READ;
+        UART_IN_SET_DIV: begin
+          uart_in_state = UART_IN_READ;
           uart_reg_div_we = 4'h0;  // clear we 
           uart_reg_dat_re <= 1;  // clear read buffer
         end
-        UART_READ: begin
+        UART_IN_READ: begin
           if (uart_reg_dat_do[31:24] == 8'h00) begin
             //$display("Read %c", uart_reg_dat_do[7:0]);
             uart_reg_dat_re <= 1;
-            uart_state = UART_READ_DONE;
+            uart_in_state = UART_IN_READ_DONE;
             //
             input_char <= uart_reg_dat_do[7:0];
             input_char_valid <= 1;
           end
         end
-        UART_READ_DONE: begin
-          uart_state = UART_READ;
+        UART_IN_READ_DONE: begin
+          uart_in_state = UART_IN_READ;
         end
         default: begin
         end
@@ -150,7 +149,6 @@ module uart_master (
     end
   end
 
-  //Wishbone
 endmodule
 
 module ascii2hex (
