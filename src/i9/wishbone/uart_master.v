@@ -28,6 +28,10 @@ module uart_master (
   wire [31:0] uart_reg_dat_do;
   wire        uart_reg_dat_wait;
 
+  //tx buf
+  reg  [39:0] tx_buf;
+  reg  [ 7:0] tx_buf_len;
+
   // uart instance
   simpleuart uart (
       .clk(clk),
@@ -73,6 +77,11 @@ module uart_master (
       .rw_ready(rw_ready)
   );
 
+  wire [31:0] response_data;
+  wire response_data_valid;
+  wire response_data_ready;
+  assign response_data_ready = tx_buf_len == 0;
+
   wishone_rw rw (
       .clk(clk),
       .rst(rst),
@@ -94,7 +103,10 @@ module uart_master (
       .wb_sel_o (wb_sel_i),
 
       .wb_ack_i (wb_ack_o),
-      .wb_data_i(wb_data_o)
+      .wb_data_i(wb_data_o),
+      .response_data(response_data),
+      .response_data_valid(response_data_valid),
+      .response_data_ready(response_data_ready)
   );
 
   typedef enum logic [1:0] {
@@ -142,6 +154,47 @@ module uart_master (
         end
         UART_IN_READ_DONE: begin
           uart_in_state = UART_IN_READ;
+        end
+        default: begin
+        end
+      endcase
+    end
+  end
+
+  typedef enum logic [1:0] {
+    UART_OUT_WAIT      = 2'd0,
+    UART_OUT_CLK_OUT      = 2'd1,
+    UART_OUT_WAIT_READY      = 2'd2
+  } uart_out_state_t;
+
+  uart_out_state_t uart_out_state;
+
+  //UART SEND
+  always @(posedge clk) begin
+    if (rst) begin
+      uart_out_state = UART_OUT_WAIT;
+      tx_buf_len = 0;
+    end else begin
+      case (uart_out_state)
+        UART_OUT_WAIT: begin
+          // if there is data to send 
+          if (tx_buf_len >0 && ~uart_reg_dat_wait) begin
+            uart_reg_dat_di = {24'h00_00_00, {tx_buf[39-:8]}};
+            uart_reg_dat_we = 1;
+            uart_out_state = UART_OUT_CLK_OUT;
+          end
+          //uart_out_state = UART_IN_SET_DIV;
+        end
+        UART_OUT_CLK_OUT: begin
+            uart_out_state = UART_OUT_WAIT_READY;
+        end
+        UART_OUT_WAIT_READY: begin
+            if(~ uart_reg_dat_wait) begin
+                uart_reg_dat_we = 0;
+                uart_out_state = UART_OUT_WAIT;
+                tx_buf_len = tx_buf_len -1;
+                tx_buf = {tx_buf[31:0],8'h00};
+            end
         end
         default: begin
         end
@@ -210,14 +263,20 @@ module wishone_rw (
     output reg [4-1:0] wb_sel_o,
 
     input wire wb_ack_i,
-    input wire [31:0] wb_data_i
+    input wire [31:0] wb_data_i,
+
+    //response out
+    output reg [31:0] response_data,
+    output reg        response_data_valid,
+    input             response_data_ready
 );
 
-  typedef enum logic [1:0] {
-    WB_INIT              = 2'd0,
-    WB_WAIT_FOR_CMD      = 2'd1,
-    WB_READ              = 2'd2,
-    WB_WAIT_FOR_WB_READY = 2'd3
+  typedef enum logic [2:0] {
+    WB_INIT              = 3'd0,
+    WB_WAIT_FOR_CMD      = 3'd1,
+    WB_READ              = 3'd2,
+    WB_WAIT_FOR_WB_READY = 3'd3,
+    WB_WAIT_FOR_RESPONE_READY = 3'd4
   } wb_state_t;
 
   wb_state_t state;
@@ -236,6 +295,8 @@ module wishone_rw (
           wb_data_o <= 0;
           wb_sel_o <= 0;
           state <= WB_WAIT_FOR_CMD;
+          response_data <= 32'h00_00_00_00;
+          response_data_valid <= 0;
         end
         WB_WAIT_FOR_CMD: begin
           if (rw_valid) begin  // initiate transaction
@@ -261,7 +322,21 @@ module wishone_rw (
             state <= WB_WAIT_FOR_CMD;
             if (wb_we_o) begin
               rw_data_out <= wb_data_i;
+              if (response_data_ready) begin
+                response_data <= wb_data_i;
+                response_data_valid <= 1;
+                state <= WB_WAIT_FOR_RESPONE_READY;
+              end else begin
+                $display("Skip sending response (BUSY) %x",response_data_ready);
+              end
             end
+          end
+        end
+        WB_WAIT_FOR_RESPONE_READY: begin
+          if (response_data_ready) begin
+                response_data <= 32'h00_00_00_00;
+                response_data_valid <= 0;
+                state <= WB_WAIT_FOR_CMD;
           end
         end
         default: $display("WB invalid state ");
@@ -283,6 +358,7 @@ module uart_wishbone_decode (
     output [31:0] rw_data,
     output reg rw_write,
     output reg rw_valid,
+    // sigaling back
     input rw_ready,
     input [31:0] rw_data_in
 );
