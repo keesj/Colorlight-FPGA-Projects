@@ -31,10 +31,71 @@ module ascii2hex (
   end
 endmodule
 
+module bin2hex (
+    input logic [3:0] nibble,
+    output logic [7:0] ascii
+);
+  always_comb begin
+    case (nibble)
+      4'h0: ascii = "0";
+      4'h1: ascii = "1";
+      4'h2: ascii = "2";
+      4'h3: ascii = "3";
+      4'h4: ascii = "4";
+      4'h5: ascii = "5";
+      4'h6: ascii = "6";
+      4'h7: ascii = "7";
+      4'h8: ascii = "8";
+      4'h9: ascii = "9";
+      4'ha: ascii = "a";
+      4'hb: ascii = "b";
+      4'hc: ascii = "c";
+      4'hd: ascii = "d";
+      4'he: ascii = "e";
+      4'hf: ascii = "f";
+      default: ascii = "x";
+    endcase
+  end
+endmodule
+
 module uart_cmd_encode (
     input logic clk,
-    input logic rst
+    input logic rst,
+
+    //input
+    input logic [31:0] data_in,
+    input logic data_in_valid,
+
+    //output
+    output reg [71:0] data_out,
+    output reg  data_out_valid
 );
+
+  // 8x8
+  wire [63:0] encoded_data;
+  genvar i;
+  generate
+    for (i = 0; i < 8; i++) begin
+      bin2hex data_encode (
+          .nibble(data_in[ (i+1)*4 -1 -:4]),
+          .ascii (encoded_data[i*8+:8])
+      );
+    end
+  endgenerate
+
+  always @(posedge clk) begin
+    if (rst) begin
+      data_out = {9{8'h00}};
+      data_out_valid =0;
+    end else begin
+      data_out_valid =0;
+      if (data_in_valid) begin
+        data_out[71-:8] ="r";
+        data_out[63:0] = encoded_data;
+      data_out_valid =1;
+      end
+    end
+  end
 endmodule
 
 module uart_cmd_decode (

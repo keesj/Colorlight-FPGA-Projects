@@ -28,15 +28,6 @@ module uart_master_tb ();
   wire [31:0] uart0_reg_dat_do;
   wire        uart0_reg_dat_wait;  // busy do not send data
 
-  reg  [ 3:0] uart1_reg_div_we;
-  reg  [31:0] uart1_reg_div_di;
-  wire [31:0] uart1_reg_div_do;
-
-  reg         uart1_reg_dat_we;  // write reg_dat_do
-  reg         uart1_reg_dat_re;  // read reg
-  reg  [31:0] uart1_reg_dat_di;
-  wire [31:0] uart1_reg_dat_do;
-  wire        uart1_reg_dat_wait;  // busy do not send data
 
   //creation of uart instances
   simpleuart uart0 (
@@ -109,7 +100,8 @@ module uart_master_tb ();
     $dumpfile("waves.vcd");
     $dumpvars(0, uart_master_tb);
 
-    tx_buf[0] = "r";
+    //write data
+    tx_buf[0] = "w";
     tx_buf[1] = "0";
     tx_buf[2] = "0";
     tx_buf[3] = "0";
@@ -118,16 +110,18 @@ module uart_master_tb ();
     tx_buf[6] = "0";
     tx_buf[7] = "0";
     tx_buf[8] = "1";
-    tx_buf[9] = "\n";
-    tx_buf[10] = "w";
-    tx_buf[11] = "0";
-    tx_buf[12] = "0";
-    tx_buf[13] = "0";
-    tx_buf[14] = "0";
-    tx_buf[15] = "0";
-    tx_buf[16] = "0";
-    tx_buf[17] = "0";
-    tx_buf[18] = "1";
+
+    tx_buf[9] = "8";
+    tx_buf[10] = "7";
+    tx_buf[11] = "6";
+    tx_buf[12] = "5";
+    tx_buf[13] = "4";
+    tx_buf[14] = "3";
+    tx_buf[15] = "2";
+    tx_buf[16] = "1";
+    tx_buf[17] = "\n";
+    //read command
+    tx_buf[18] = "r";
     tx_buf[19] = "0";
     tx_buf[20] = "0";
     tx_buf[21] = "0";
@@ -180,8 +174,20 @@ module uart_master_tb ();
         tx_buf[i] = tx_buf[i+1];
       end
     end
-    repeat (100) @(posedge clk);
+    repeat (1000) @(posedge clk);
     $finish();
   end
 
+  initial begin
+    $display("Listen to uart");
+    while (1) begin
+      while (uart0_reg_dat_do[31:24] == 8'hff) begin
+        @(posedge clk);  // wait for output buffer to be ready
+      end
+      uart0_reg_dat_re = 1;
+      $display("Read %c", uart0_reg_dat_do[7:0]);
+      @(posedge clk);
+      uart0_reg_dat_re = 0;
+    end
+  end
 endmodule

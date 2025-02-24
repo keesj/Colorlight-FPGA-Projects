@@ -29,7 +29,7 @@ module uart_master (
   wire        uart_reg_dat_wait;
 
   //tx buf
-  reg  [39:0] tx_buf;
+  reg  [71:0] tx_buf;
   reg  [ 7:0] tx_buf_len;
 
   // uart instance
@@ -82,6 +82,17 @@ module uart_master (
   wire response_data_ready;
   assign response_data_ready = tx_buf_len == 0;
 
+  wire [71:0] encode_data_buf;
+  wire encode_data_buf_valid;
+
+  uart_cmd_encode encode (
+      .clk(clk),
+      .rst(rst),
+      .data_in(response_data),
+      .data_in_valid(response_data_valid),
+      .data_out(encode_data_buf),
+      .data_out_valid(encode_data_buf_valid)
+  );
   wishone_rw rw (
       .clk(clk),
       .rst(rst),
@@ -180,23 +191,27 @@ module uart_master (
     end else begin
       case (uart_out_state)
         UART_OUT_WAIT: begin
+          if(encode_data_buf_valid) begin
+            $display("Set output buffer to %x", encode_data_buf);
+            tx_buf[71:0] = encode_data_buf;
+            tx_buf_len = 9;
+          end
           // if there is data to send 
           if (tx_buf_len >0 && ~uart_reg_dat_wait) begin
-            uart_reg_dat_di = {24'h00_00_00, {tx_buf[39-:8]}};
+            uart_reg_dat_di = {24'h00_00_00, {tx_buf[71-:8]}};
             uart_reg_dat_we = 1;
             uart_out_state = UART_OUT_CLK_OUT;
           end
-          //uart_out_state = UART_IN_SET_DIV;
         end
         UART_OUT_CLK_OUT: begin
             uart_out_state = UART_OUT_WAIT_READY;
         end
         UART_OUT_WAIT_READY: begin
+            uart_reg_dat_we = 0;
             if(~ uart_reg_dat_wait) begin
-                uart_reg_dat_we = 0;
                 uart_out_state = UART_OUT_WAIT;
                 tx_buf_len = tx_buf_len -1;
-                tx_buf = {tx_buf[31:0],8'h00};
+                tx_buf = {tx_buf[63:0],8'h00};
             end
         end
         default: begin
