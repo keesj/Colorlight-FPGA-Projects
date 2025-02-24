@@ -61,7 +61,7 @@ module uart_master (
   reg  [ 7:0] input_char;
   reg         input_char_valid;
 
-  uart_cmd_decode decode (
+  uart_cmd_decode cmd_decode (
       .clk(clk),
       .rst(rst),
       //data interface
@@ -85,7 +85,7 @@ module uart_master (
   wire [71:0] encode_data_buf;
   wire encode_data_buf_valid;
 
-  uart_cmd_encode encode (
+  uart_cmd_encode cmd_encode (
       .clk(clk),
       .rst(rst),
       .data_in(response_data),
@@ -93,7 +93,7 @@ module uart_master (
       .data_out(encode_data_buf),
       .data_out_valid(encode_data_buf_valid)
   );
-  wishone_rw rw (
+  wishone_request wishbone_request (
       .clk(clk),
       .rst(rst),
 
@@ -188,6 +188,7 @@ module uart_master (
     if (rst) begin
       uart_out_state = UART_OUT_WAIT;
       tx_buf_len = 0;
+      tx_buf = {9{8'h00}};
     end else begin
       case (uart_out_state)
         UART_OUT_WAIT: begin
@@ -222,7 +223,7 @@ module uart_master (
 
 endmodule
 
-module wishone_rw (
+module wishone_request (
     input logic clk,
     input logic rst,
     //commands

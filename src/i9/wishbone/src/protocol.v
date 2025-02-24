@@ -1,4 +1,4 @@
-module ascii2hex (
+module ascii_hex2bin (
     input  logic [7:0] ascii,
     output logic [3:0] nibble
 );
@@ -31,7 +31,7 @@ module ascii2hex (
   end
 endmodule
 
-module bin2hex (
+module bin2ascii_hex (
     input logic [3:0] nibble,
     output logic [7:0] ascii
 );
@@ -62,7 +62,7 @@ module uart_cmd_encode (
     input logic clk,
     input logic rst,
 
-    //input
+    //input back from a read command
     input logic [31:0] data_in,
     input logic data_in_valid,
 
@@ -76,7 +76,7 @@ module uart_cmd_encode (
   genvar i;
   generate
     for (i = 0; i < 8; i++) begin
-      bin2hex data_encode (
+      bin2ascii_hex data_encode (
           .nibble(data_in[ (i+1)*4 -1 -:4]),
           .ascii (encoded_data[i*8+:8])
       );
@@ -127,11 +127,11 @@ module uart_cmd_decode (
   genvar i;
   generate
     for (i = 0; i < 8; i++) begin
-      ascii2hex address_decode0 (
+      ascii_hex2bin address_decode0 (
           .ascii (cmd[i+1]),
           .nibble(address[31-i*4-:4])
       );
-      ascii2hex data_decode0 (
+      ascii_hex2bin data_decode0 (
           .ascii (cmd[i+9]),
           .nibble(data[31-i*4-:4])
       );
