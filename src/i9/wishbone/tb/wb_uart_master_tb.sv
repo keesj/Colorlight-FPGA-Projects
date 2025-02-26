@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps 
 `default_nettype none
 
-module uart_master_tb ();
+module wb_uart_master_tb ();
 
   //clock generation
   reg clk;
@@ -27,7 +27,6 @@ module uart_master_tb ();
   reg  [31:0] uart0_reg_dat_di;
   wire [31:0] uart0_reg_dat_do;
   wire        uart0_reg_dat_wait;  // busy do not send data
-
 
   //creation of uart instances
   simpleuart uart0 (
@@ -58,7 +57,7 @@ module uart_master_tb ();
   wire wb_ack;
   reg [31:0] wb_data_r;
 
-  uart_master master (
+  wb_uart_master master (
       .clk(clk),
       .rst(rst),
 
@@ -98,7 +97,7 @@ module uart_master_tb ();
   //test loop
   initial begin
     $dumpfile("waves.vcd");
-    $dumpvars(0, uart_master_tb);
+    $dumpvars(0, wb_uart_master_tb);
 
     //write data
     tx_buf[0] = "w";

@@ -1,4 +1,4 @@
-module uart_master (
+module wb_uart_master (
     input  clk,
     input  rst,
     // UART
