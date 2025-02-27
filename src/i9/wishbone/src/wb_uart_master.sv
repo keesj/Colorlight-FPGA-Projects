@@ -17,6 +17,9 @@ module wb_uart_master (
     input wire [31:0] wb_data_o
 );
 
+  localparam CLK_FREQ = 25_000_000;
+  localparam UART_DIVIDER = CLK_FREQ / 115200;
+
   // UART
   reg  [ 3:0] uart_reg_div_we;
   reg  [31:0] uart_reg_div_di;
@@ -147,7 +150,7 @@ module wb_uart_master (
     end else begin
       case (uart_in_state)
         UART_IN_INIT: begin
-          uart_reg_div_di = 32'h00_00_00_08;
+          uart_reg_div_di = UART_DIVIDER;
           uart_reg_div_we = 4'b1111;
           uart_in_state = UART_IN_SET_DIV;
         end

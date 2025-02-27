@@ -147,7 +147,7 @@ module wb_uart_master_tb ();
     @(posedge clk);
 
     //write divider and wait 
-    uart0_reg_div_di = 32'h00_00_00_08;
+    uart0_reg_div_di = 217;
     uart0_reg_div_we = 4'b1111;
 
     do begin
