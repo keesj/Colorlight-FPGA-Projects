@@ -14,11 +14,14 @@ module wb_uart_master (
     output wire [4-1:0] wb_sel_i,
 
     input wire wb_ack_o,
-    input wire [31:0] wb_data_o
+    input wire [31:0] wb_data_o,
+    //debug
+    output activity
 );
 
   localparam CLK_FREQ = 25_000_000;
   localparam UART_DIVIDER = CLK_FREQ / 115200;
+
 
   // UART
   reg  [ 3:0] uart_reg_div_we;
@@ -134,6 +137,7 @@ module wb_uart_master (
   } uart_in_state_t;
 
   uart_in_state_t uart_in_state;
+  assign activity = uart_in_state == UART_IN_READ_DONE;
 
   //UART RECIEVE
   always @(posedge clk) begin

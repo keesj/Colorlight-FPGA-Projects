@@ -57,6 +57,7 @@ module wb_uart_master_tb ();
   wire wb_ack;
   reg [31:0] wb_data_r;
 
+  wire activity;
   wb_uart_master master (
       .clk(clk),
       .rst(rst),
@@ -71,7 +72,8 @@ module wb_uart_master_tb ();
       .wb_data_i(wb_data_w),
       .wb_sel_i (wb_sel),
       .wb_ack_o (wb_ack),
-      .wb_data_o(wb_data_r)
+      .wb_data_o(wb_data_r),
+      .activity(activity)
   );
 
   //wb slave
