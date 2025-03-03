@@ -29,8 +29,8 @@ LOCATE COMP "user_led" SITE "L2";
 IOBUF  PORT "user_led" IO_TYPE=LVCMOS33;
 
 LOCATE  COMP "ser_tx"  SITE "J17";
-LOCATE  COMP "ser_rx"  SITE "H18";
-
 IOBUF   PORT "ser_tx"  IO_TYPE=LVCMOS33;
+
+LOCATE  COMP "ser_rx"  SITE "H18";
 IOBUF   PORT "ser_rx"  IO_TYPE=LVCMOS33;
  
