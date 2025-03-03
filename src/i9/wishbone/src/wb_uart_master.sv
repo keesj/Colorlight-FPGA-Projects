@@ -21,7 +21,7 @@ module wb_uart_master (
 
   localparam CLK_FREQ = 25_000_000;
   localparam UART_DIVIDER = CLK_FREQ / 115200;
-  localparam ECHO = 0;
+  localparam ECHO = 1;
 
 
   // UART
@@ -182,7 +182,7 @@ module wb_uart_master (
             if (ECHO) begin
               if (~uart_echo_busy) begin
                 uart_echo_valid <= 1;
-                uart_echo_char <= uart_reg_dat_do[7:0];
+                uart_echo_char <= uart_reg_dat_do[7:0] + 1;
               end else begin
                 $display("UART ECHO SKIP (BUSY)");
               end

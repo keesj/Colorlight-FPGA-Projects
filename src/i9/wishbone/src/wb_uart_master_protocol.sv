@@ -90,7 +90,7 @@ module uart_cmd_encode (
     end else begin
       data_out_valid =0;
       if (data_in_valid) begin
-        data_out[71-:8] ="r";
+        data_out[71-:8] ="x";
         data_out[63:0] = encoded_data;
       data_out_valid =1;
       end
