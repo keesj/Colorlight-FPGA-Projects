@@ -36,7 +36,7 @@ module wb_uart_master (
   wire        uart_reg_dat_wait;
 
   //tx buf
-  reg  [71:0] tx_buf;
+  reg  [79:0] tx_buf;
   reg  [ 7:0] tx_buf_len;
 
   // uart instance
@@ -89,7 +89,7 @@ module wb_uart_master (
   wire response_data_ready;
   assign response_data_ready = tx_buf_len == 0;
 
-  wire [71:0] encode_data_buf;
+  wire [79:0] encode_data_buf;
   wire encode_data_buf_valid;
 
   uart_cmd_encode cmd_encode (
@@ -213,7 +213,7 @@ module wb_uart_master (
     if (rst) begin
       uart_out_state <= UART_OUT_WAIT;
       tx_buf_len <= 0;
-      tx_buf <= {9{8'h00}};
+      tx_buf <= {10{8'h00}};
       uart_echo_busy <= 0;
       uart_reg_dat_we <= 0;  // read reg
       uart_reg_dat_di <= 32'h0;
@@ -226,16 +226,16 @@ module wb_uart_master (
         UART_OUT_WAIT: begin
           if (encode_data_buf_valid) begin
             $display("Set output buffer to %x", encode_data_buf);
-            tx_buf[71:0] <= encode_data_buf;
-            tx_buf_len   <= 9;
+            tx_buf[79:0] <= encode_data_buf;
+            tx_buf_len   <= 10;
           end else if (uart_echo_valid) begin
-            tx_buf <= {uart_echo_char, tx_buf[63:0]};
+            tx_buf <= {uart_echo_char, tx_buf[71:0]};
             tx_buf_len <= tx_buf_len + 1;
             uart_echo_busy <= 1;
           end
           // if there is data to send 
           if (tx_buf_len > 0 && ~uart_reg_dat_wait) begin
-            uart_reg_dat_di <= {24'h00_00_00, {tx_buf[71-:8]}};
+            uart_reg_dat_di <= {24'h00_00_00, {tx_buf[79-:8]}};
             uart_reg_dat_we <= 1;
             uart_out_state  <= UART_OUT_CLK_OUT;
           end
@@ -248,7 +248,7 @@ module wb_uart_master (
           if (~uart_reg_dat_wait) begin
             uart_out_state <= UART_OUT_WAIT;
             tx_buf_len <= tx_buf_len - 1;
-            tx_buf <= {tx_buf[63:0], 8'h00};
+            tx_buf <= {tx_buf[71:0], 8'h00};
           end
         end
         default: begin

@@ -11,11 +11,11 @@ ser = serial.Serial(
     timeout=0.5
 )
 
-ser.write(b'\nw0000000112345678\n')
 # Write data to the serial port
 
+ser.write(b'\nw0000000111223344\n')
 # Read a line and print it
-for i in range(100):
+for i in range(20):
     ser.write(b'r00000001\n')
 
     line = ser.readline().decode('latin1').rstrip()

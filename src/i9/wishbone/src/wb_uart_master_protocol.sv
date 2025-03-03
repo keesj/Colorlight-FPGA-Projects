@@ -67,7 +67,7 @@ module uart_cmd_encode (
     input logic data_in_valid,
 
     //output
-    output reg [71:0] data_out,
+    output reg [79:0] data_out,
     output reg data_out_valid
 );
 
@@ -85,13 +85,14 @@ module uart_cmd_encode (
 
   always @(posedge clk) begin
     if (rst) begin
-      data_out = {9{8'h00}};
+      data_out = {10{8'h00}};
       data_out_valid = 0;
     end else begin
       data_out_valid = 0;
       if (data_in_valid) begin
-        data_out[71-:8] = "x";
-        data_out[63:0]  = encoded_data;
+        data_out[79-:8] = "x";
+        data_out[71:8]  = encoded_data;
+        data_out[7:0]  = "\n";
         data_out_valid  = 1;
       end
     end
