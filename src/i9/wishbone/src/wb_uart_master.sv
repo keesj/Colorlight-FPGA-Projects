@@ -21,6 +21,7 @@ module wb_uart_master (
 
   localparam CLK_FREQ = 25_000_000;
   localparam UART_DIVIDER = CLK_FREQ / 115200;
+  localparam ECHO = 0;
 
 
   // UART
@@ -150,9 +151,6 @@ module wb_uart_master (
     if (rst) begin
       uart_reg_div_we = 0;
       uart_reg_div_di = 0;
-      uart_reg_dat_we = 0;  // write uart0_reg_dat_do
-      uart_reg_dat_re <= 0;  // read reg
-      uart_reg_dat_di = 32'h0;
       uart_in_state = UART_IN_INIT;
       uart_echo_valid <=0;
       uart_echo_char <= 8'h00;
@@ -181,11 +179,13 @@ module wb_uart_master (
             input_char <= uart_reg_dat_do[7:0];
             input_char_valid <= 1;
 
-            if (~uart_echo_busy) begin
-              uart_echo_valid <= 1;
-              uart_echo_char <= uart_reg_dat_do[7:0];
-            end else begin
-              $display("UART ECHO SKIP (BUSY)");
+            if (ECHO) begin
+              if (~uart_echo_busy) begin
+                uart_echo_valid <= 1;
+                uart_echo_char <= uart_reg_dat_do[7:0];
+              end else begin
+                $display("UART ECHO SKIP (BUSY)");
+              end
             end
           end
         end
@@ -206,7 +206,7 @@ module wb_uart_master (
 
   uart_out_state_t uart_out_state;
 
-  assign activity = uart_out_state == UART_OUT_CLK_OUT;
+  assign activity = uart_out_state == UART_OUT_WAIT_READY;
   //UART SEND
   always @(posedge clk) begin
     if (rst) begin
@@ -214,6 +214,8 @@ module wb_uart_master (
       tx_buf_len = 0;
       tx_buf = {9{8'h00}};
       uart_echo_busy <= 0;
+      uart_reg_dat_we = 0;  // read reg
+      uart_reg_dat_di = 32'h0;
     end else begin
       // only set echo busy low when valid is low
       if (~uart_echo_valid) begin
