@@ -11,15 +11,22 @@ ser = serial.Serial(
     timeout=0.5
 )
 
-# Write data to the serial port
+def write(address,data):
+    global ser
+    # Write data to the serial port
+    ser.write(f'w{address:08x}{data:08x}\n'.encode('latin1'))
 
-ser.write(b'\x00\nw0000000111223344\n')
-# Read a line and print it
-for i in range(20):
-    ser.write(b'r00000001\n')
-
+def read(address):
+    global ser
+    # Write data to the serial port
+    ser.write(f'r{address:08x}\n'.encode('latin1'))
     line = ser.readline().decode('latin1').rstrip()
-    print(f'{i} Received: {line}')
+    return line
+
+# Read a line and print it
+for i in range(200):
+    write(1,i * 2);
+    print(read(1))
 
 # Close the serial port
 ser.close()
