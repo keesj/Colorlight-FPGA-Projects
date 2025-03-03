@@ -335,7 +335,7 @@ module wishone_request (
             wb_stb_o <= 0;
             wb_cyc_o <= 0;
             wb_we_o  <= 0;
-            if (wb_we_o) begin
+            if (~wb_we_o) begin
               rw_data_out <= wb_data_i;
               state <= WB_WAIT_FOR_RESPONE_READY;
               if (response_data_ready) begin

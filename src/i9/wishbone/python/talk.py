@@ -13,7 +13,7 @@ ser = serial.Serial(
 
 # Write data to the serial port
 
-ser.write(b'\nw0000000111223344\n')
+ser.write(b'\x00\nw0000000111223344\n')
 # Read a line and print it
 for i in range(20):
     ser.write(b'r00000001\n')
