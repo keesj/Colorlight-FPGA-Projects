@@ -116,7 +116,7 @@ module uart_cmd_decode (
     input [31:0] rw_data_in
 );
 
-  logic [7:0] cmd[18:0];
+  logic [7:0] cmd[18];
   logic [4:0] cmd_len;
 
   wire [31:0] address;
@@ -150,46 +150,56 @@ module uart_cmd_decode (
           cmd[cmd_len] <= data_in;
           cmd_len <= cmd_len + 1;
         end else if (data_in == "\n") begin
-          case (cmd[0])
-            "r": begin
-              //$display("READ CMD");
-              case (cmd_len)
-                8 + 1: begin
-                  $display("Read address is 0x%08x", address);
-                  cmd_len <= 0;
-                  if (rw_ready) begin
-                    rw_write <= 0;
-                    rw_valid <= 1;
-                  end else begin
-                    $display("Skip read (RW BUSY)");
+          $display("CMD0: %c", cmd[0]);
+          if (cmd_len > 0) begin
+            case (cmd[0])
+              "r": begin
+                $display("READ CMD");
+                case (cmd_len)
+                  8 + 1: begin
+                    $display("Read address is 0x%08x", address);
+                    cmd_len <= 0;
+                    if (rw_ready) begin
+                      rw_write <= 0;
+                      rw_valid <= 1;
+                    end else begin
+                      $display("Skip read (RW BUSY)");
+                    end
                   end
-                end
-                default: $display("Invalid length");
-              endcase
-            end
-            "w": begin
-              //$display("WRITE CMD");
-              case (cmd_len)
-                16 + 1: begin
-                  $display("Write address is 0x%08x value 0x%08x", address, data);
-                  cmd_len <= 0;
-                  if (rw_ready) begin
-                    rw_write <= 1;
-                    rw_valid <= 1;
-                  end else begin
-                    $display("Skip write (RW BUSY)");
+                  default: begin
+                    $display("Invalid length");
+                    cmd_len <= 0;
                   end
-                end
-                default: $display("Invalid length");
-              endcase
-            end
-            default: begin
-              $display("unknown command %x -> %c", cmd[0], cmd[0]);
-              cmd_len <= 0;
-            end
-          endcase
+                endcase
+              end
+              "w": begin
+                $display("WRITE CMD");
+                case (cmd_len)
+                  16 + 1: begin
+                    $display("Write address is 0x%08x value 0x%08x", address, data);
+                    cmd_len <= 0;
+                    if (rw_ready) begin
+                      rw_write <= 1;
+                      rw_valid <= 1;
+                    end else begin
+                      $display("Skip write (RW BUSY)");
+                    end
+                  end
+                  default: begin 
+                    $display("Invalid length");
+                    cmd_len <= 0;
+                  end
+                endcase
+              end
+              default: begin
+                $display("unknown command %x -> %c", cmd[0], cmd[0]);
+                cmd_len <= 0;
+              end
+            endcase
+          end
         end else if (data_in == 8'h00) begin
           $display("RESET ");
+          cmd_len <= 0;
         end
       end
     end

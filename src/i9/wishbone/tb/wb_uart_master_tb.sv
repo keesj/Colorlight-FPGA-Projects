@@ -103,14 +103,14 @@ module wb_uart_master_tb ();
 
     //write data
     tx_buf[0] = "w";
-    tx_buf[1] = "0";
-    tx_buf[2] = "0";
-    tx_buf[3] = "0";
-    tx_buf[4] = "0";
-    tx_buf[5] = "0";
-    tx_buf[6] = "0";
-    tx_buf[7] = "0";
-    tx_buf[8] = "1";
+    tx_buf[1] = "0"; //1
+    tx_buf[2] = "0"; //1
+    tx_buf[3] = "0"; //1
+    tx_buf[4] = "0"; //1
+    tx_buf[5] = "0"; //1
+    tx_buf[6] = "0"; //1
+    tx_buf[7] = "0"; //1
+    tx_buf[8] = "0"; //1
 
     tx_buf[9] = "8";
     tx_buf[10] = "7";

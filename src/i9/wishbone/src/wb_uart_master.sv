@@ -206,7 +206,8 @@ module wb_uart_master (
 
   uart_out_state_t uart_out_state;
 
-  assign activity = uart_out_state == UART_OUT_WAIT_READY;
+  assign activity = uart_out_state == UART_OUT_WAIT && encode_data_buf_valid;
+
   //UART SEND
   always @(posedge clk) begin
     if (rst) begin

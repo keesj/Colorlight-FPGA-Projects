@@ -25,6 +25,10 @@ assign wb_data_o  = regs[reg_addr];
 
 always @(posedge clk_i) begin
   if (rst_i) begin
+    regs[0] = 32'h11223344;
+    regs[1] = 32'h55667788;
+    regs[2] = 32'h99aabbcc;
+    regs[3] = 32'hddeeff00;
     //wb_data_o = 0;
   end else begin
     if (wb_stb_i && wb_cyc_i) begin
