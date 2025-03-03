@@ -137,7 +137,10 @@ module wb_uart_master (
   } uart_in_state_t;
 
   uart_in_state_t uart_in_state;
-  assign activity = uart_in_state == UART_IN_READ_DONE;
+
+  reg [7:0] uart_echo_char;
+  reg uart_echo_valid;
+  reg uart_echo_busy;
 
   //UART RECIEVE
   always @(posedge clk) begin
@@ -151,7 +154,13 @@ module wb_uart_master (
       uart_reg_dat_re <= 0;  // read reg
       uart_reg_dat_di = 32'h0;
       uart_in_state = UART_IN_INIT;
+      uart_echo_valid <=0;
+      uart_echo_char <= 8'h00;
     end else begin
+      if (~uart_echo_busy) begin
+        uart_echo_valid <= 0;
+        uart_echo_char <= 8'h00;
+      end
       case (uart_in_state)
         UART_IN_INIT: begin
           uart_reg_div_di = UART_DIVIDER;
@@ -171,6 +180,13 @@ module wb_uart_master (
             //
             input_char <= uart_reg_dat_do[7:0];
             input_char_valid <= 1;
+
+            if (~uart_echo_busy) begin
+              uart_echo_valid <= 1;
+              uart_echo_char <= uart_reg_dat_do[7:0];
+            end else begin
+              $display("UART ECHO SKIP (BUSY)");
+            end
           end
         end
         UART_IN_READ_DONE: begin
@@ -190,19 +206,29 @@ module wb_uart_master (
 
   uart_out_state_t uart_out_state;
 
+  assign activity = uart_out_state == UART_OUT_CLK_OUT;
   //UART SEND
   always @(posedge clk) begin
     if (rst) begin
       uart_out_state = UART_OUT_WAIT;
       tx_buf_len = 0;
       tx_buf = {9{8'h00}};
+      uart_echo_busy <= 0;
     end else begin
+      // only set echo busy low when valid is low
+      if (~uart_echo_valid) begin
+        uart_echo_busy <= 0;
+      end
       case (uart_out_state)
         UART_OUT_WAIT: begin
           if(encode_data_buf_valid) begin
             $display("Set output buffer to %x", encode_data_buf);
             tx_buf[71:0] = encode_data_buf;
             tx_buf_len = 9;
+          end else if (uart_echo_valid) begin 
+            tx_buf = {uart_echo_char,tx_buf[63:0]};
+            tx_buf_len = tx_buf_len +1;
+            uart_echo_busy <= 1;
           end
           // if there is data to send 
           if (tx_buf_len >0 && ~uart_reg_dat_wait) begin
@@ -306,16 +332,17 @@ module wishone_request (
             wb_stb_o <= 0;
             wb_cyc_o <= 0;
             wb_we_o <= 0;
-            state <= WB_WAIT_FOR_CMD;
             if (wb_we_o) begin
               rw_data_out <= wb_data_i;
+              state <= WB_WAIT_FOR_RESPONE_READY;
               if (response_data_ready) begin
                 response_data <= wb_data_i;
                 response_data_valid <= 1;
-                state <= WB_WAIT_FOR_RESPONE_READY;
               end else begin
                 $display("Skip sending response (BUSY) %x",response_data_ready);
               end
+            end else begin
+              state <= WB_WAIT_FOR_CMD;
             end
           end
         end
