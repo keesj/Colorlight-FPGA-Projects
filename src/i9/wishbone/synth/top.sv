@@ -1,10 +1,9 @@
 module top (
     input  clk,
     output reg user_led, // on board led
-    output ser_tx,
-    input ser_rx
+    input  ser_rx,
+    output reg ser_tx
 );
-
 
   //tx buf
   reg  [  7:0] tx_buf     [0:50];
@@ -60,13 +59,16 @@ module top (
       .wb_data_o(wb_data_r)
   );
 
+  reg last_activity;
   always @(posedge clk) begin
     if (rst) begin
-      user_led =0;
+      last_activity = 0;
+      user_led = 0;
     end else begin
-      if (activity) begin
+      if (~last_activity & activity) begin
         user_led = ~ user_led;
       end
+      last_activity = activity;
     end
   end
     

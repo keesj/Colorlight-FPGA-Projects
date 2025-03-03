@@ -186,9 +186,22 @@ module wb_uart_master_tb ();
         @(posedge clk);  // wait for output buffer to be ready
       end
       uart0_reg_dat_re = 1;
-      $display("Read %c", uart0_reg_dat_do[7:0]);
-      @(posedge clk);
+      $display("%08d Read %c ", $time() , uart0_reg_dat_do[7:0]);
+        @(posedge clk);  // wait for output buffer to be ready
+        @(posedge clk);  // wait for output buffer to be ready
       uart0_reg_dat_re = 0;
+    end
+  end
+
+  reg last_activity;
+  always @(posedge clk) begin
+    if (rst) begin
+      last_activity = 0;
+    end else begin
+      if (~last_activity & activity) begin
+        $display("BLINK");
+      end
+      last_activity = activity;
     end
   end
 endmodule
