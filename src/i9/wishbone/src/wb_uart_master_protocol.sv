@@ -32,7 +32,7 @@ module ascii_hex2bin (
 endmodule
 
 module bin2ascii_hex (
-    input logic [3:0] nibble,
+    input  logic [3:0] nibble,
     output logic [7:0] ascii
 );
   always_comb begin
@@ -68,7 +68,7 @@ module uart_cmd_encode (
 
     //output
     output reg [71:0] data_out,
-    output reg  data_out_valid
+    output reg data_out_valid
 );
 
   // 8x8
@@ -77,7 +77,7 @@ module uart_cmd_encode (
   generate
     for (i = 0; i < 8; i++) begin
       bin2ascii_hex data_encode (
-          .nibble(data_in[ (i+1)*4 -1 -:4]),
+          .nibble(data_in[(i+1)*4-1-:4]),
           .ascii (encoded_data[i*8+:8])
       );
     end
@@ -86,13 +86,13 @@ module uart_cmd_encode (
   always @(posedge clk) begin
     if (rst) begin
       data_out = {9{8'h00}};
-      data_out_valid =0;
+      data_out_valid = 0;
     end else begin
-      data_out_valid =0;
+      data_out_valid = 0;
       if (data_in_valid) begin
-        data_out[71-:8] ="x";
-        data_out[63:0] = encoded_data;
-      data_out_valid =1;
+        data_out[71-:8] = "x";
+        data_out[63:0]  = encoded_data;
+        data_out_valid  = 1;
       end
     end
   end
