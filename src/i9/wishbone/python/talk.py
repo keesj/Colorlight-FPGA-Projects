@@ -8,15 +8,16 @@ ser = serial.Serial(
     bytesize=serial.EIGHTBITS,
     parity=serial.PARITY_NONE,
     stopbits=serial.STOPBITS_ONE,
-    timeout=.1
+    timeout=1
 )
 
 # Write data to the serial port
-ser.write(b'r00000000\n')
+ser.write(b'\x00r00000000\n')
 
 # Read a line and print it
-line = ser.readline().decode('utf-8').rstrip()
-print(f'Received: {line}')
+for i in range(2):
+    line = ser.readline().decode('latin1').rstrip()
+    print(f'{i} Received: {line}')
 
 # Close the serial port
 ser.close()
