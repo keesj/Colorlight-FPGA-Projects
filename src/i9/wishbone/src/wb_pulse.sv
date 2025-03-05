@@ -1,5 +1,6 @@
 module pulse (
     input            clk_i,
+    input rst_i,
     output reg       led_o,
     output reg [3:0] gpio
 );
@@ -21,19 +22,13 @@ module pulse (
   reg [WIDTH-1:0] phase;
 
   assign clk_s = clk_i;
-  //pll_12_16 pll_inst (.clki(clk_i), .clko(clk_s), .rst(rst_s));
-  rst_gen rst_inst (
-      .clk_i(clk_s),
-      .rst_i(1'b0),
-      .rst_o(rst_s)
-  );
+
 
   reg  [WIDTH-1:0] cpt_s;
   reg  [WIDTH-1:0] cpt_max;
   wire [WIDTH-1:0] cpt_next_s = cpt_s + 1'b1;
 
 
-  //GPIO 0 unused 
   assign gpio[0] = out1;
   assign gpio[1] = !out1;
   assign gpio[2] = out2;
@@ -42,10 +37,10 @@ module pulse (
   wire out2_end_s = cpt_s == phase;
 
   always @(posedge clk_s) begin
-    cpt_s <= (rst_s || end_s) ? {WIDTH{1'b0}} : cpt_next_s;
+    cpt_s <= (rst_i || end_s) ? {WIDTH{1'b0}} : cpt_next_s;
     cnt   <= cnt + 1;
 
-    if (rst_s) begin
+    if (rst_i) begin
       out1 <= 1'b0;
       out2 <= 1'b0;
       led_o <= 1'b0;
@@ -97,6 +92,7 @@ module wb_pulse (
 
   pulse pwm (
       .clk_i(clk_i),
+      .rst_i(rst_i),
       .led_o(led),
       .gpio (gpio)
   );
