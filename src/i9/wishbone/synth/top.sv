@@ -1,10 +1,15 @@
 module top (
     input  clk,
-    output reg user_led, // on board led
-    input  ser_rx,
-    output reg ser_tx
-);
 
+    //serial
+    input  ser_rx,
+    output reg ser_tx,
+
+    //led and gpio
+    output reg user_led, // on board led
+    output reg [3:0] gpio // GPIO to module
+
+);
   //tx buf
   reg  [  7:0] tx_buf     [0:50];
   reg  [  7:0] tx_buf_len;
@@ -42,8 +47,9 @@ module top (
       .activity(activity)
   );
 
+  wire dummy_led;
   //wb slave
-  wb_slave slave (
+  wb_pulse slave (
       .clk_i(clk),
       .rst_i(rst),
 
@@ -56,7 +62,12 @@ module top (
       .wb_sel_i (wb_sel),
 
       .wb_ack_o (wb_ack),
-      .wb_data_o(wb_data_r)
+      .wb_data_o(wb_data_r),
+
+
+      //
+      .led(dummy_led),
+      .gpio(gpio)
   );
 
   reg last_activity;

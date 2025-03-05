@@ -8,12 +8,12 @@ ECPDAP_OPTS=-f 500
 default: uart-master_tb
 
 .PHONY: uart-master_tb
-uart-master_tb: tb/wb_uart_master_tb.sv tb/src/wb_slave.sv $(SRC) $(IP)
+uart-master_tb: tb/wb_uart_master_tb.sv src/wb_pulse.sv $(SRC) $(IP)
 	verilator --top-module wb_uart_master_tb --timing --lint-only $^
 	iverilog -o $@ -g2012 $^
 	./$@
 
-$(OUT_DIR)design.json: synth/top.sv tb/src/wb_slave.sv $(SRC) $(IP)
+$(OUT_DIR)design.json: synth/top.sv src/wb_pulse.sv $(SRC) $(IP)
 	verilator --top-module top --timing --lint-only $^
 	mkdir -p $(OUT_DIR)
 	yosys -p "synth_ecp5 -json $@" $^

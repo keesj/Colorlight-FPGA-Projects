@@ -12,6 +12,9 @@ module wb_uart_master_tb ();
   reg  [ 7:0] tx_buf                                       [0:50];
   reg  [ 7:0] tx_buf_len;
 
+  wire [3:0] gpio;
+  wire led;
+
   reg         rst;
   //wiring
 
@@ -77,7 +80,7 @@ module wb_uart_master_tb ();
   );
 
   //wb slave
-  wb_slave slave (
+  wb_pulse slave (
       .clk_i(clk),
       .rst_i(rst),
 
@@ -90,7 +93,12 @@ module wb_uart_master_tb ();
       .wb_sel_i (wb_sel),
 
       .wb_ack_o (wb_ack),
-      .wb_data_o(wb_data_r)
+      .wb_data_o(wb_data_r),
+
+
+      // pulse GPIO
+      .led(led),
+      .gpio(gpio)
   );
 
 
