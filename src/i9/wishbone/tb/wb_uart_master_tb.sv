@@ -81,8 +81,8 @@ module wb_uart_master_tb ();
 
   //wb slave
   wb_pulse slave (
-      .clk_i(clk),
-      .rst_i(rst),
+      .clk(clk),
+      .rst(rst),
 
       //wishbone
       .wb_cyc_i (wb_cyc),
@@ -97,7 +97,6 @@ module wb_uart_master_tb ();
 
 
       // pulse GPIO
-      .led(led),
       .gpio(gpio)
   );
 

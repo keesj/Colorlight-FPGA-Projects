@@ -47,11 +47,10 @@ module top (
       .activity(activity)
   );
 
-  wire dummy_led;
   //wb slave
   wb_pulse slave (
-      .clk_i(clk),
-      .rst_i(rst),
+      .clk(clk),
+      .rst(rst),
 
       //wishbone
       .wb_cyc_i (wb_cyc),
@@ -64,9 +63,6 @@ module top (
       .wb_ack_o (wb_ack),
       .wb_data_o(wb_data_r),
 
-
-      //
-      .led(dummy_led),
       .gpio(gpio)
   );
 

@@ -92,7 +92,7 @@ module uart_cmd_encode (
       if (data_in_valid) begin
         data_out[79-:8] = "x";
         data_out[71:8]  = encoded_data;
-        data_out[7:0]  = "\n";
+        data_out[7:0]   = "\n";
         data_out_valid  = 1;
       end
     end
@@ -186,7 +186,7 @@ module uart_cmd_decode (
                       $display("Skip write (RW BUSY)");
                     end
                   end
-                  default: begin 
+                  default: begin
                     $display("Invalid length");
                     cmd_len <= 0;
                   end

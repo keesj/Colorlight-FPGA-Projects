@@ -1,78 +1,76 @@
 module pulse (
-    input            clk_i,
-    input rst_i,
-    output reg       led_o,
+    input            clk,
+    input            rst,
     output reg [3:0] gpio
 );
-  localparam FREQ = 25_000_000;
-  localparam MAX = FREQ / 40_200 / 2;  // 
-  localparam LOW = FREQ / 39_960 / 2;  // 12500000;
-  //localparam LOW = FREQ/36_000/2;// 12500000;
-  localparam WIDTH = $clog2(LOW);
+
+  // CPU FREQ
+  // 1 Hz is the lowest frequency we can generate
+  // 50Khz
+  localparam CLK_FREQ = 25_000_000;
+  localparam MAX_DIV = CLK_FREQ / 1 / 2;
+  localparam MAX = CLK_FREQ / 50_000 / 2;
+
+  localparam WIDTH = $clog2(MAX_DIV);
   //localparam PHASE = 60*MAX/360;
 
-  wire rst_s;
-  wire clk_s;
 
-  reg out1;
-
-  reg [WIDTH-1:0] cnt;
-  reg [WIDTH-1:0] freq;
-  reg out2;
-  reg [WIDTH-1:0] phase;
-
-  assign clk_s = clk_i;
+  reg [WIDTH-1:0] pwm_counter;
+  reg [WIDTH-1:0] pwm_div;
+  reg [WIDTH-1:0] pwm_duty;
+  reg [WIDTH-1:0] pwm_phase;
+  reg [WIDTH-1:0] pwm_dp_counter;
+  reg [WIDTH-1:0] pwm_dn_counter;
 
 
-  reg  [WIDTH-1:0] cpt_s;
-  reg  [WIDTH-1:0] cpt_max;
-  wire [WIDTH-1:0] cpt_next_s = cpt_s + 1'b1;
+  assign gpio[0] = pwm_dp_counter > 0;
+  assign gpio[1] = pwm_dn_counter > 0;
+  assign gpio[2] = 1'b0;
+  assign gpio[3] = 1'b0;
 
+  reg last_flip_flop;
+  reg flip_flop;
 
-  assign gpio[0] = out1;
-  assign gpio[1] = !out1;
-  assign gpio[2] = out2;
-  assign gpio[3] = !out2;
-  wire end_s = cpt_s >= cpt_max - 1;
-  wire out2_end_s = cpt_s == phase;
+  always @(posedge clk) begin
+    pwm_counter <= pwm_counter + 1;
+    last_flip_flop <= flip_flop;
 
-  always @(posedge clk_s) begin
-    cpt_s <= (rst_i || end_s) ? {WIDTH{1'b0}} : cpt_next_s;
-    cnt   <= cnt + 1;
+    if (pwm_dp_counter > 0) begin
+      pwm_dp_counter <= pwm_dp_counter - 1;
+    end
 
-    if (rst_i) begin
-      out1 <= 1'b0;
-      out2 <= 1'b0;
-      led_o <= 1'b0;
-      cpt_max <= LOW[WIDTH-1:0];
-      phase <= 0;
-      cnt <= 0;
+    if (pwm_dn_counter > 0) begin
+      pwm_dn_counter <= pwm_dn_counter - 1;
+    end
+
+    if (rst) begin
+      pwm_counter <= 0;
+      pwm_div <= 10;
+      pwm_duty <= 5;
+      flip_flop <= 0;
+      last_flip_flop <= 0;
     end else begin
-      if (cnt > FREQ[WIDTH-1:0]) begin
-        cpt_max <= cpt_max - 1;
-        if (cpt_max < MAX[WIDTH-1:0]) begin
-          cpt_max <= LOW[WIDTH-1:0];
-        end
-        //out2 <= ~out2;
-        phase <= phase - 1;
-        led_o <= ~led_o;
-        cnt   <= 0;
+      if (pwm_counter >= pwm_div) begin
+        pwm_counter <= 0;
+        flip_flop   <= ~flip_flop;
       end
-      if (end_s) begin
-        out1 <= ~out1;
-        //phase <= phase + 1;
-        if (phase >= cpt_max - 1) begin
-          phase <= 0;
-        end
+      //risin edge
+      if (flip_flop & ~last_flip_flop) begin
+        pwm_dp_counter <= pwm_duty;
+        $display("%d FLIP", $time());
       end
-      if (out2_end_s) out2 <= ~out2;
+      //falling edge
+      if (~flip_flop & last_flip_flop) begin
+        pwm_dn_counter <= pwm_duty;
+        $display("%d FLOP", $time());
+      end
     end
   end
 endmodule
 
 module wb_pulse (
-    input wire clk_i,
-    input wire rst_i,
+    input wire clk,
+    input wire rst,
 
     //wishbone
     input wire wb_cyc_i,
@@ -86,15 +84,13 @@ module wb_pulse (
     output reg [31:0] wb_data_o,
 
     // pulse GPIO
-    output wire led,
     output wire [3:0] gpio
 );
 
   pulse pwm (
-      .clk_i(clk_i),
-      .rst_i(rst_i),
-      .led_o(led),
-      .gpio (gpio)
+      .clk (clk),
+      .rst (rst),
+      .gpio(gpio)
   );
 
   reg [31:0] regs[4];
@@ -105,8 +101,8 @@ module wb_pulse (
   assign wb_ack_o  = wb_stb_i && wb_cyc_i;
   assign wb_data_o = regs[reg_addr];
 
-  always @(posedge clk_i) begin
-    if (rst_i) begin
+  always @(posedge clk) begin
+    if (rst) begin
       //wb_data_o = 0;
     end else begin
       if (wb_stb_i && wb_cyc_i) begin
