@@ -13,6 +13,11 @@ uart-master_tb: tb/wb_uart_master_tb.sv src/wb_pulse.sv $(SRC) $(IP)
 	iverilog -o $@ -g2012 $^
 	./$@
 
+format-sources:$(SRC)
+	for i in $(SRC) ; do \
+		verible-verilog-format --inplace $$i ;\
+	done
+
 $(OUT_DIR)design.json: synth/top.sv src/wb_pulse.sv $(SRC) $(IP)
 	verilator --top-module top --timing --lint-only $^
 	mkdir -p $(OUT_DIR)
