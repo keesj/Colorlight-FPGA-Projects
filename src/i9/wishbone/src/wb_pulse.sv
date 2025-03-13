@@ -9,29 +9,29 @@ module pulse (
     output reg pulse_div_ready
 );
 
- // The ultrasonic sensor can be driven with 2 MOFSETs that can drive the
- // speaker in twoo directions. This means that during a cycle the 
- //
- //          <--du-->
- //
- // First wave
- // 1:       |------|
- //          |      |
- // 0:  -----|      |------|      |-------
- //                        |      |
- // -1:                    |------|
- //  
- //  Second wave, po
- // 1:  <- ph ->        |------|
- //                     |      |
- // 0:             -----|      |------|      |-------
- //                                   |      |
- // -1:                               |------|
- // du: PWM duty
- // di: PWM divider
- // ph: Phase of the second wave compared to the first
- // po: pollarity 
- //
+  // The ultrasonic sensor can be driven with 2 MOFSETs that can drive the
+  // speaker in twoo directions. This means that during a cycle the 
+  //
+  //          <--du-->
+  //
+  // First wave
+  // 1:       |------|
+  //          |      |
+  // 0:  -----|      |------|      |-------
+  //                        |      |
+  // -1:                    |------|
+  //  
+  //  Second wave, po
+  // 1:  <- ph ->        |------|
+  //                     |      |
+  // 0:             -----|      |------|      |-------
+  //                                   |      |
+  // -1:                               |------|
+  // du: PWM duty
+  // di: PWM divider
+  // ph: Phase of the second wave compared to the first
+  // po: pollarity 
+  //
   // CPU FREQ
   // 1 Hz is the lowest frequency we can generate
   // 50Khz
@@ -39,7 +39,7 @@ module pulse (
   localparam MAX_DIV = CLK_FREQ / 1 / 2;
   localparam MAX = CLK_FREQ / 50_000 / 2;
 
-  localparam WIDTH = 32;//$clog2(MAX_DIV);
+  localparam WIDTH = 32;  //$clog2(MAX_DIV);
   //localparam PHASE = 60*MAX/360;
 
   reg [WIDTH-1:0] pwm_counter;
@@ -49,11 +49,11 @@ module pulse (
   reg [WIDTH-1:0] pwm_dp_counter;
   reg [WIDTH-1:0] pwm_dn_counter;
 
-  assign pulse_div_do =pwm_div;
+  assign pulse_div_do = pwm_div;
 
   // Second wave
   reg [WIDTH-1:0] pwm_phase;
-  reg  pwm_polatiry;
+  reg pwm_polatiry;
   reg [WIDTH-1:0] pwm_dp_counter2;
   reg [WIDTH-1:0] pwm_dn_counter2;
 
@@ -65,14 +65,14 @@ module pulse (
 
   reg flip_flop;
 
-  wire [WIDTH-1:0] pwm_dp_counter_next = (pwm_dp_counter >0 )? pwm_dp_counter: pwm_dp_counter -1;
-  wire [WIDTH-1:0] pwm_dn_counter_next = (pwm_dn_counter >0 )? pwm_dn_counter: pwm_dn_counter -1;
+  wire [WIDTH-1:0] pwm_dp_counter_next = (pwm_dp_counter > 0) ? pwm_dp_counter : pwm_dp_counter - 1;
+  wire [WIDTH-1:0] pwm_dn_counter_next = (pwm_dn_counter > 0) ? pwm_dn_counter : pwm_dn_counter - 1;
 
   always @(posedge clk) begin
     pwm_counter <= pwm_counter + 1;
 
     // registers
-    pulse_div_ready <= 0;
+    pulse_div_ready <= 1;
 
     pwm_dp_counter <= pwm_dp_counter_next;
     pwm_dn_counter <= pwm_dn_counter_next;
@@ -86,21 +86,22 @@ module pulse (
     end else begin
 
       if (pulse_div_valid) begin
+        $display("PWM DIV %d", pulse_div_di);
         pwm_next_div <= pulse_div_di;
-        pulse_div_ready <= 1;
+        pulse_div_ready <= 0;
       end
 
       if (pwm_counter >= pwm_div) begin
         pwm_counter <= 0;
         pwm_div <= pwm_next_div;
-        if(flip_flop) begin
-          $display("FLIP");
+        if (flip_flop) begin
+          //          $display("FLIP");
           pwm_dp_counter <= pwm_duty;
         end else begin
-          $display("FLOP");
+          //         $display("FLOP");
           pwm_dn_counter <= pwm_duty;
         end
-        flip_flop   <= ~flip_flop;
+        flip_flop <= ~flip_flop;
       end
     end
   end
@@ -151,15 +152,35 @@ module wb_pulse (
   assign wb_data_o = regs[reg_addr];
 
   always @(posedge clk) begin
+    if (pwm_div_ready) begin
+      pwm_div_valid <= 1'b0;
+    end
     if (rst) begin
+      pwm_div_in <= 32'h00000000;
       //wb_data_o = 0;
     end else begin
       if (wb_stb_i && wb_cyc_i) begin
-        if (wb_we_i) begin
-          if (wb_sel_i[0]) regs[reg_addr][7:0] = wb_data_i[7:0];
-          if (wb_sel_i[1]) regs[reg_addr][15:8] = wb_data_i[15:8];
-          if (wb_sel_i[2]) regs[reg_addr][23:16] = wb_data_i[23:16];
-          if (wb_sel_i[3]) regs[reg_addr][31:24] = wb_data_i[31:24];
+        if (wb_we_i && wb_sel_i == 4'b1111) begin
+          case (reg_addr)
+            2'd0: begin
+              $display("Pulse Wishbone write DIV %08x value %08x", reg_addr, wb_data_i);
+              if (pwm_div_ready) begin
+                pwm_div_in <= wb_data_i;
+                pwm_div_valid <= 1'b1;
+              end else begin
+                $display("DIV BUSY");
+              end
+            end
+            2'd1: begin
+              $display("Pulse Wishbone write PWM %08x value %08x", reg_addr, wb_data_i);
+            end
+            2'd2: begin
+              $display("Pulse Wishbone write PHASE_SHIFT %08x value %08x", reg_addr, wb_data_i);
+            end
+            2'd3: begin
+              $display("Pulse Wishbone write XXX %08x value %08x", reg_addr, wb_data_i);
+            end
+          endcase
           $display("Pulse Wishbone write on address %08x value %08x", reg_addr, wb_data_i);
         end else begin
           $display("Pulse Wishbone read on address %08x value %08x", reg_addr, regs[reg_addr]);

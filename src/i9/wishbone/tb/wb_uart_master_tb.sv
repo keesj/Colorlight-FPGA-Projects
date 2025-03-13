@@ -119,14 +119,14 @@ module wb_uart_master_tb ();
     tx_buf[7] = "0"; //1
     tx_buf[8] = "0"; //1
 
-    tx_buf[9] = "8";
-    tx_buf[10] = "7";
-    tx_buf[11] = "6";
-    tx_buf[12] = "5";
-    tx_buf[13] = "4";
-    tx_buf[14] = "3";
-    tx_buf[15] = "2";
-    tx_buf[16] = "1";
+    tx_buf[9] = "0";
+    tx_buf[10] = "0";
+    tx_buf[11] = "0";
+    tx_buf[12] = "0";
+    tx_buf[13] = "0";
+    tx_buf[14] = "0";
+    tx_buf[15] = "1";
+    tx_buf[16] = "0";
     tx_buf[17] = "\n";
     //read command
     tx_buf[18] = "r";
