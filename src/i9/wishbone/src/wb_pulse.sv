@@ -143,13 +143,11 @@ module wb_pulse (
       .pulse_div_ready(pwm_div_ready)
   );
 
-  reg [31:0] regs[4];
 
   wire [1:0] reg_addr = wb_addr_i[1:0];
 
-  //always ack and set 
-  assign wb_ack_o  = wb_stb_i && wb_cyc_i;
-  assign wb_data_o = regs[reg_addr];
+  //always ack,,,
+  assign wb_ack_o = wb_stb_i && wb_cyc_i;
 
   always @(posedge clk) begin
     if (pwm_div_ready) begin
@@ -157,6 +155,7 @@ module wb_pulse (
     end
     if (rst) begin
       pwm_div_in <= 32'h00000000;
+      wb_data_o  <= 32'h00000000;
       //wb_data_o = 0;
     end else begin
       if (wb_stb_i && wb_cyc_i) begin
@@ -183,7 +182,25 @@ module wb_pulse (
           endcase
           $display("Pulse Wishbone write on address %08x value %08x", reg_addr, wb_data_i);
         end else begin
-          $display("Pulse Wishbone read on address %08x value %08x", reg_addr, regs[reg_addr]);
+          case (reg_addr)
+            2'd0: begin
+              $display("Pulse Wishbone read DIV %08x value %08x", reg_addr, wb_data_i);
+              wb_data_o <= pwm_div_out;
+            end
+            2'd1: begin
+              $display("Pulse Wishbone read PWM %08x value %08x", reg_addr, wb_data_i);
+              wb_data_o <= 32'hc0de0192;
+            end
+            2'd2: begin
+              $display("Pulse Wishbone read PHASE_SHIFT %08x value %08x", reg_addr, wb_data_i);
+              wb_data_o <= 32'hc0de0196;
+            end
+            2'd3: begin
+              $display("Pulse Wishbone write XXX %08x value %08x", reg_addr, wb_data_i);
+              wb_data_o <= 32'hc0de2000;
+            end
+          endcase
+          $display("Pulse Wishbone read on address %08x", reg_addr);
         end
       end
     end
