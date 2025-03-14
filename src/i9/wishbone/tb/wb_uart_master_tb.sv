@@ -182,7 +182,7 @@ module wb_uart_master_tb ();
         tx_buf[i] = tx_buf[i+1];
       end
     end
-    repeat (1000) @(posedge clk);
+    repeat (100000) @(posedge clk);
     $finish();
   end
 

@@ -235,6 +235,7 @@ module wb_uart_master (
           end
           // if there is data to send 
           if (tx_buf_len > 0 && ~uart_reg_dat_wait) begin
+            //$display("Setting %c on the line ", tx_buf[79:72]);
             uart_reg_dat_di <= {24'h00_00_00, {tx_buf[79-:8]}};
             uart_reg_dat_we <= 1;
             uart_out_state  <= UART_OUT_CLK_OUT;
