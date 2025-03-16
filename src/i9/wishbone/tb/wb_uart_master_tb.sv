@@ -9,7 +9,8 @@ module wb_uart_master_tb ();
   always #10 clk = ~clk;
 
   //tx buf
-  reg  [ 7:0] tx_buf                                       [0:50];
+  //reg  [50*8-1:0] tx_buf;
+  string tx_buf;
   reg  [ 7:0] tx_buf_len;
 
   wire [3:0] gpio;
@@ -101,7 +102,24 @@ module wb_uart_master_tb ();
   );
 
 
-  integer i;
+
+  task write(string cmd);
+    // send tx buffer to uart
+    integer i;
+    for(i =0 ; i < cmd.len() ; i = i + 1) begin
+
+      $display("%d %c",i, cmd[i]);
+      uart0_reg_dat_di = {24'h00_00_00, cmd[i]};
+      uart0_reg_dat_we = 1;
+      do begin
+        @(posedge clk);  // wait for output buffer to be ready
+        @(posedge clk);  // wait for output buffer to be ready
+        uart0_reg_dat_we = 0;
+      end while (uart0_reg_dat_wait);
+
+      repeat (1) @(posedge clk);
+    end
+  endtask
 
   //test loop
   initial begin
@@ -109,38 +127,9 @@ module wb_uart_master_tb ();
     $dumpvars(0, wb_uart_master_tb);
 
     //write data
-    tx_buf[0] = "w";
-    tx_buf[1] = "0"; //1
-    tx_buf[2] = "0"; //1
-    tx_buf[3] = "0"; //1
-    tx_buf[4] = "0"; //1
-    tx_buf[5] = "0"; //1
-    tx_buf[6] = "0"; //1
-    tx_buf[7] = "0"; //1
-    tx_buf[8] = "0"; //1
-
-    tx_buf[9] = "0";
-    tx_buf[10] = "0";
-    tx_buf[11] = "0";
-    tx_buf[12] = "0";
-    tx_buf[13] = "0";
-    tx_buf[14] = "0";
-    tx_buf[15] = "1";
-    tx_buf[16] = "0";
-    tx_buf[17] = "\n";
+    tx_buf = "w0000000000000010\n";
     //read command
-    tx_buf[18] = "r";
-    tx_buf[19] = "0";
-    tx_buf[20] = "0";
-    tx_buf[21] = "0";
-    tx_buf[22] = "0";
-    tx_buf[23] = "0";
-    tx_buf[24] = "0";
-    tx_buf[25] = "0";
-    tx_buf[26] = "1";
-    tx_buf[27] = "\n";
-    tx_buf_len = 28;
-
+    //
     // initial values
     uart0_reg_div_we = 0;
     uart0_reg_div_di = 0;
@@ -164,28 +153,13 @@ module wb_uart_master_tb ();
       uart0_reg_div_we = 4'b0;
     end while (uart0_reg_dat_wait);
 
-    // send tx buffer to uart
-    while (tx_buf_len > 0) begin
-      uart0_reg_dat_di = {24'h00_00_00, {tx_buf[0]}};
-      uart0_reg_dat_we = 1;
-      do begin
-        @(posedge clk);  // wait for output buffer to be ready
-        @(posedge clk);  // wait for output buffer to be ready
-        uart0_reg_dat_we = 0;
-      end while (uart0_reg_dat_wait);
-
-      repeat (10) @(posedge clk);
-
-
-      tx_buf_len = tx_buf_len - 1;
-      for (int i = 0; i < 50; i++) begin
-        tx_buf[i] = tx_buf[i+1];
-      end
-    end
+    write("w0000000000000010\n");
+    write("r00000000\n");
     repeat (100000) @(posedge clk);
     $finish();
   end
 
+  
   initial begin
     $display("Listen to uart");
     while (1) begin
