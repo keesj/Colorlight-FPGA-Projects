@@ -18,6 +18,7 @@ module top (
   rst_gen rst_inst (.clk_i(clk), .rst_i(1'b0), .rst_o(rst));
   //wiring
 
+  assign user_led = gpio[0];
   // wishbone master
   reg          wb_cyc;
   reg          wb_stb;
@@ -66,17 +67,17 @@ module top (
       .gpio(gpio)
   );
 
-  reg last_activity;
-  always @(posedge clk) begin
-    if (rst) begin
-      last_activity = 0;
-      user_led = 0;
-    end else begin
-      if (~last_activity & activity) begin
-        user_led = ~ user_led;
-      end
-      last_activity = activity;
-    end
-  end
+//  reg last_activity;
+//  always @(posedge clk) begin
+//    if (rst) begin
+//      last_activity = 0;
+//      user_led = 0;
+//    end else begin
+//      if (~last_activity & activity) begin
+//        user_led = ~ user_led;
+//      end
+//      last_activity = activity;
+//    end
+//  end
     
 endmodule

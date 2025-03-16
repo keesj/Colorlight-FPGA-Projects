@@ -65,8 +65,8 @@ module pulse (
 
   reg flip_flop;
 
-  wire [WIDTH-1:0] pwm_dp_counter_next = (pwm_dp_counter > 0) ? pwm_dp_counter : pwm_dp_counter - 1;
-  wire [WIDTH-1:0] pwm_dn_counter_next = (pwm_dn_counter > 0) ? pwm_dn_counter : pwm_dn_counter - 1;
+  wire [WIDTH-1:0] pwm_dp_counter_next = (pwm_dp_counter > 0) ? pwm_dp_counter -1 : 0;
+  wire [WIDTH-1:0] pwm_dn_counter_next = (pwm_dn_counter > 0) ? pwm_dn_counter -1 : 0;
 
   always @(posedge clk) begin
     pwm_counter <= pwm_counter + 1;
@@ -94,6 +94,7 @@ module pulse (
       if (pwm_counter >= pwm_div) begin
         pwm_counter <= 0;
         pwm_div <= pwm_next_div;
+        pwm_duty <= pwm_next_div; // TODO REMOVE
         if (flip_flop) begin
           //          $display("FLIP");
           pwm_dp_counter <= pwm_duty;
