@@ -343,7 +343,7 @@ module wishone_request (
                 response_data <= wb_data_i;
                 response_data_valid <= 1;
               end else begin
-                $display("Skip sending response (BUSY) %x", response_data_ready);
+                $display("UART Skip sending response (BUSY) %x", response_data_ready);
               end
             end else begin
               state <= WB_WAIT_FOR_CMD;

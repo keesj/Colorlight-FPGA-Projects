@@ -65,8 +65,8 @@ module pulse (
 
   reg flip_flop;
 
-  wire [WIDTH-1:0] pwm_dp_counter_next = (pwm_dp_counter > 0) ? pwm_dp_counter -1 : 0;
-  wire [WIDTH-1:0] pwm_dn_counter_next = (pwm_dn_counter > 0) ? pwm_dn_counter -1 : 0;
+  wire [WIDTH-1:0] pwm_dp_counter_next = (pwm_dp_counter > 0) ? pwm_dp_counter - 1 : 0;
+  wire [WIDTH-1:0] pwm_dn_counter_next = (pwm_dn_counter > 0) ? pwm_dn_counter - 1 : 0;
 
   always @(posedge clk) begin
     pwm_counter <= pwm_counter + 1;
@@ -94,7 +94,7 @@ module pulse (
       if (pwm_counter >= pwm_div) begin
         pwm_counter <= 0;
         pwm_div <= pwm_next_div;
-        pwm_duty <= pwm_next_div; // TODO REMOVE
+        pwm_duty <= pwm_next_div;  // TODO REMOVE
         if (flip_flop) begin
           //          $display("FLIP");
           pwm_dp_counter <= pwm_duty;
@@ -181,7 +181,7 @@ module wb_pulse (
               $display("Pulse Wishbone write XXX %08x value %08x", reg_addr, wb_data_i);
             end
           endcase
-          $display("Pulse Wishbone write on address %08x value %08x", reg_addr, wb_data_i);
+          //$display("Pulse Wishbone write on address %08x value %08x", reg_addr, wb_data_i);
         end else begin
           case (reg_addr)
             2'd0: begin
@@ -201,7 +201,7 @@ module wb_pulse (
               wb_data_o <= 32'hc0de2000;
             end
           endcase
-          $display("Pulse Wishbone read on address %08x", reg_addr);
+          //$display("Pulse Wishbone read on address %08x", reg_addr);
         end
       end
     end

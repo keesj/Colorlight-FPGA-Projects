@@ -1,5 +1,4 @@
-`timescale 1ns / 1ps 
-`default_nettype none
+`timescale 1ns / 1ps `default_nettype none
 
 module wb_uart_master_tb ();
 
@@ -10,27 +9,27 @@ module wb_uart_master_tb ();
 
   //tx buf
   //reg  [50*8-1:0] tx_buf;
-  string tx_buf;
-  reg  [ 7:0] tx_buf_len;
+  string        tx_buf;
+  string        rx_buf;
 
-  wire [3:0] gpio;
-  wire led;
+  wire   [ 3:0] gpio;
+  wire          led;
 
-  reg         rst;
+  reg           rst;
   //wiring
 
-  wire        ser_tx;
-  reg         ser_rx;
+  wire          ser_tx;
+  reg           ser_rx;
 
-  reg  [ 3:0] uart0_reg_div_we;
-  reg  [31:0] uart0_reg_div_di;
-  wire [31:0] uart0_reg_div_do;
+  reg    [ 3:0] uart0_reg_div_we;
+  reg    [31:0] uart0_reg_div_di;
+  wire   [31:0] uart0_reg_div_do;
 
-  reg         uart0_reg_dat_we;  // write reg_dat_do
-  reg         uart0_reg_dat_re;  // read reg
-  reg  [31:0] uart0_reg_dat_di;
-  wire [31:0] uart0_reg_dat_do;
-  wire        uart0_reg_dat_wait;  // busy do not send data
+  reg           uart0_reg_dat_we;  // write reg_dat_do
+  reg           uart0_reg_dat_re;  // read reg
+  reg    [31:0] uart0_reg_dat_di;
+  wire   [31:0] uart0_reg_dat_do;
+  wire          uart0_reg_dat_wait;  // busy do not send data
 
   //creation of uart instances
   simpleuart uart0 (
@@ -77,7 +76,7 @@ module wb_uart_master_tb ();
       .wb_sel_i (wb_sel),
       .wb_ack_o (wb_ack),
       .wb_data_o(wb_data_r),
-      .activity(activity)
+      .activity (activity)
   );
 
   //wb slave
@@ -106,9 +105,9 @@ module wb_uart_master_tb ();
   task write(string cmd);
     // send tx buffer to uart
     integer i;
-    for(i =0 ; i < cmd.len() ; i = i + 1) begin
+    for (i = 0; i < cmd.len(); i = i + 1) begin
 
-      $display("%d %c",i, cmd[i]);
+      //$display("%d %c",i, cmd[i]);
       uart0_reg_dat_di = {24'h00_00_00, cmd[i]};
       uart0_reg_dat_we = 1;
       do begin
@@ -149,28 +148,47 @@ module wb_uart_master_tb ();
     uart0_reg_div_we = 4'b1111;
 
     do begin
-      @(posedge clk);  // wait for output buffer to be ready
+      @(posedge clk);  // wait for output buffer to be yready
       uart0_reg_div_we = 4'b0;
     end while (uart0_reg_dat_wait);
 
     write("w0000000000000010\n");
     write("r00000000\n");
+    repeat (1000) @(posedge clk);
+    write("r00000000\n");
+    //write("r00000001\n");
     repeat (100000) @(posedge clk);
     $finish();
   end
 
-  
+
   initial begin
     $display("Listen to uart");
+    @(posedge clk);  // 
+    do begin
+      $display("RESET SEQ");
+      @(posedge clk);  // 
+    end while (rst);
+
+    rx_buf = "";
     while (1) begin
       while (uart0_reg_dat_do[31:24] == 8'hff) begin
         @(posedge clk);  // wait for output buffer to be ready
       end
+      if (uart0_reg_dat_do[7:0] == "\n") begin
+        $display("%08d Read String '%s' ", $time(), rx_buf);
+        rx_buf = "";
+      end else begin
+        $sformat(rx_buf, "%s%c", rx_buf, uart0_reg_dat_do[7:0]);
+        //$display("%08d Read %02x ", $time(), uart0_reg_dat_do[7:0]);
+      end
+
       uart0_reg_dat_re = 1;
-      $display("%08d Read %c ", $time() , uart0_reg_dat_do[7:0]);
-        @(posedge clk);  // wait for output buffer to be ready
-        @(posedge clk);  // wait for output buffer to be ready
+      do begin
+        @(posedge clk);  // wait for output buffer to be empty
+      end while (uart0_reg_dat_do[31:24] == 8'h00);
       uart0_reg_dat_re = 0;
+      @(posedge clk);
     end
   end
 
