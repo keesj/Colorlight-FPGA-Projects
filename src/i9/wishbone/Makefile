@@ -1,5 +1,6 @@
 IP= $(shell find ip -name "*.sv")
 SRC= $(shell find src -name "*.sv")
+TB_SRC= $(shell find tb -name "*.sv")
 
 # synth/prograamming options
 OUT_DIR=out/
@@ -14,7 +15,7 @@ uart-master_tb: tb/wb_uart_master_tb.sv src/wb_pulse.sv $(SRC) $(IP)
 	./$@
 
 format-sources:$(SRC)
-	for i in $(SRC) ; do \
+	for i in $(SRC) $(TB_SRC) ; do \
 		verible-verilog-format --inplace $$i ;\
 	done
 
