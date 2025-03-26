@@ -1,3 +1,4 @@
+//Copyright
 `timescale 1ns / 1ps `default_nettype none
 
 module wb_uart_master_tb ();
@@ -8,28 +9,28 @@ module wb_uart_master_tb ();
   always #10 clk = ~clk;
 
   //tx buf
-  //reg  [50*8-1:0] tx_buf;
-  string        tx_buf;
-  string        rx_buf;
+  reg    [40*8-1:0] tx_buf;
+  //string        tx_buf;
+  string            rx_buf;
 
-  wire   [ 3:0] gpio;
-  wire          led;
+  wire   [     3:0] gpio;
+  wire              led;
 
-  reg           rst;
+  reg               rst;
   //wiring
 
-  wire          ser_tx;
-  reg           ser_rx;
+  wire              ser_tx;
+  reg               ser_rx;
 
-  reg    [ 3:0] uart0_reg_div_we;
-  reg    [31:0] uart0_reg_div_di;
-  wire   [31:0] uart0_reg_div_do;
+  reg    [     3:0] uart0_reg_div_we;
+  reg    [    31:0] uart0_reg_div_di;
+  wire   [    31:0] uart0_reg_div_do;
 
-  reg           uart0_reg_dat_we;  // write reg_dat_do
-  reg           uart0_reg_dat_re;  // read reg
-  reg    [31:0] uart0_reg_dat_di;
-  wire   [31:0] uart0_reg_dat_do;
-  wire          uart0_reg_dat_wait;  // busy do not send data
+  reg               uart0_reg_dat_we;  // write reg_dat_do
+  reg               uart0_reg_dat_re;  // read reg
+  reg    [    31:0] uart0_reg_dat_di;
+  wire   [    31:0] uart0_reg_dat_do;
+  wire              uart0_reg_dat_wait;  // busy do not send data
 
   //creation of uart instances
   simpleuart uart0 (
@@ -102,19 +103,20 @@ module wb_uart_master_tb ();
 
 
 
-  task write(string cmd);
+  task write(reg [40*8-1:0] cmd, integer len);
     // send tx buffer to uart
     integer i;
-    for (i = 0; i < cmd.len(); i = i + 1) begin
+    //$display("Send string (%s) of length(%d)",  cmd , len);
+    for (i = 0; i < len; i = i + 1) begin
 
-      //$display("%d %c",i, cmd[i]);
-      uart0_reg_dat_di = {24'h00_00_00, cmd[i]};
+      uart0_reg_dat_di = {24'h00_00_00, cmd[40*8-1-:8]};
       uart0_reg_dat_we = 1;
       do begin
         @(posedge clk);  // wait for output buffer to be ready
         @(posedge clk);  // wait for output buffer to be ready
         uart0_reg_dat_we = 0;
       end while (uart0_reg_dat_wait);
+      cmd = {cmd[39*8-1:0], 8'h00};
 
       repeat (1) @(posedge clk);
     end
@@ -126,7 +128,7 @@ module wb_uart_master_tb ();
     $dumpvars(0, wb_uart_master_tb);
 
     //write data
-    tx_buf = "w0000000000000010\n";
+    //tx_buf = "w0000000000000010\n";
     //read command
     //
     // initial values
@@ -152,11 +154,17 @@ module wb_uart_master_tb ();
       uart0_reg_div_we = 4'b0;
     end while (uart0_reg_dat_wait);
 
-    write("w0000000000000010\n");
-    write("r00000000\n");
+
+    tx_buf = {{"w0000000000000010\n"}, 8'h00, {21{8'h41}}};
+    write({{"w0000000000000010\n"}, {22{8'h41}}}, 18);
+    write(tx_buf, 19);
+
+    //$finish();
+    write({{"w0000000000000010\n"}, {22{8'h41}}}, 18);
     repeat (1000) @(posedge clk);
-    write("r00000000\n");
-    //write("r00000001\n");
+    write({{"r00000000\n"}, {30{8'h41}}}, 10);
+    repeat (1000) @(posedge clk);
+    write({{"r00000000\n"}, {30{8'h41}}}, 10);
     repeat (100000) @(posedge clk);
     $finish();
   end

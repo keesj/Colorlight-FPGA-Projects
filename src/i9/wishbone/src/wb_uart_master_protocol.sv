@@ -147,11 +147,13 @@ module uart_cmd_decode (
       cmd_len <= 0;
     end else begin
       if (data_in_valid && cmd_len < 18) begin
+        //$display("DI: %x (%c) len(%d)", data_in,data_in , cmd_len);
         if (data_in >= 8'h20) begin  // accept value with an chat value above space char(' ')
+          //$display("PROTOCOL ADD : %c", data_in);
           cmd[cmd_len] <= data_in;
           cmd_len <= cmd_len + 1;
         end else if (data_in == "\n") begin
-          $display("CMD0: %c", cmd[0]);
+          //$display("CMD0: %c", cmd[0]);
           if (cmd_len > 0) begin
             case (cmd[0])
               "r": begin
@@ -199,8 +201,10 @@ module uart_cmd_decode (
             endcase
           end
         end else if (data_in == 8'h00) begin
-          $display("RESET ");
+          $display("PROTOCOL RESET");
           cmd_len <= 0;
+        end else begin
+          $display("UNCAPTURED VALUE: %c", data_in);
         end
       end
     end
