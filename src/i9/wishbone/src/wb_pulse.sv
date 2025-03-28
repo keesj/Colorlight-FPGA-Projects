@@ -86,7 +86,7 @@ module pulse (
     end else begin
 
       if (pulse_div_valid) begin
-        $display("PWM DIV %d", pulse_div_di);
+        //$display("PWM DIV %d", pulse_div_di);
         pwm_next_div <= pulse_div_di;
         pulse_div_ready <= 0;
       end
@@ -120,7 +120,7 @@ module wb_pulse (
     input wire [31:0] wb_data_i,
     input wire [4-1:0] wb_sel_i,
 
-    output wire wb_ack_o,
+    output reg wb_ack_o,
     output reg [31:0] wb_data_o,
 
     // pulse GPIO
@@ -147,8 +147,6 @@ module wb_pulse (
 
   wire [1:0] reg_addr = wb_addr_i[1:0];
 
-  //always ack,,,
-  assign wb_ack_o = wb_stb_i && wb_cyc_i;
 
   always @(posedge clk) begin
     if (pwm_div_ready) begin
@@ -157,9 +155,12 @@ module wb_pulse (
     if (rst) begin
       pwm_div_in <= 32'h00000000;
       wb_data_o  <= 32'h00000000;
+      wb_ack_o   <= 0;
       //wb_data_o = 0;
     end else begin
-      if (wb_stb_i && wb_cyc_i) begin
+      wb_ack_o <= 0;
+      if (wb_stb_i && wb_cyc_i && wb_ack_o == 1'h0) begin
+        wb_ack_o <= 1;
         if (wb_we_i && wb_sel_i == 4'b1111) begin
           case (reg_addr)
             2'd0: begin
@@ -185,7 +186,7 @@ module wb_pulse (
         end else begin
           case (reg_addr)
             2'd0: begin
-              $display("Pulse Wishbone read DIV %08x value %08x", reg_addr, wb_data_i);
+              $display("Pulse Wishbone read DIV %08x value %08x", reg_addr, pwm_div_out);
               wb_data_o <= pwm_div_out;
             end
             2'd1: begin

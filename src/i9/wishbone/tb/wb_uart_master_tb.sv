@@ -1,5 +1,7 @@
 //Copyright
-`timescale 1ns / 1ps `default_nettype none
+`timescale 1ns / 1ps
+//Copyright
+`default_nettype none
 
 module wb_uart_master_tb ();
 
@@ -155,12 +157,14 @@ module wb_uart_master_tb ();
     end while (uart0_reg_dat_wait);
 
 
-    tx_buf = {{"w0000000000000010\n"}, 8'h00, {21{8'h41}}};
-    write({{"w0000000000000010\n"}, {22{8'h41}}}, 18);
-    write(tx_buf, 19);
+    //tx_buf = {{"w0000000000000010\n"}, 8'h00, {21{8'h41}}};
+    //write({{"w0000000000000018\n"}, {22{8'h41}}}, 18);
+    //write(tx_buf, 19);
 
     //$finish();
     write({{"w0000000000000010\n"}, {22{8'h41}}}, 18);
+    repeat (1000) @(posedge clk);
+    write({{"r00000000\n"}, {30{8'h41}}}, 10);
     repeat (1000) @(posedge clk);
     write({{"r00000000\n"}, {30{8'h41}}}, 10);
     repeat (1000) @(posedge clk);
@@ -206,7 +210,7 @@ module wb_uart_master_tb ();
       last_activity = 0;
     end else begin
       if (~last_activity & activity) begin
-        $display("BLINK");
+        //$display("BLINK");
       end
       last_activity = activity;
     end

@@ -108,8 +108,8 @@ module uart_cmd_decode (
     input logic data_in_valid,
 
     //output
-    output [31:0] rw_address,
-    output [31:0] rw_data,
+    output reg [31:0] rw_address,
+    output reg [31:0] rw_data,
     output reg rw_write,
     output reg rw_valid,
     // sigaling back
@@ -117,92 +117,71 @@ module uart_cmd_decode (
     input [31:0] rw_data_in
 );
 
-  logic [7:0] cmd[18];
-  logic [4:0] cmd_len;
+  logic [18*8-1:0] cmd;
 
-  wire [31:0] address;
-  wire [31:0] data;
 
-  assign rw_address = address;
-  assign rw_data = data;
+  wire [31:0] r0;
+  wire [31:0] r1;
+  //assign rw_address = address;
+  //assign rw_data = data;
   genvar i;
   generate
-    for (i = 0; i < 8; i++) begin
-      ascii_hex2bin address_decode0 (
-          .ascii (cmd[i+1]),
-          .nibble(address[31-i*4-:4])
+    for (i = 1; i <= 8; i++) begin
+      ascii_hex2bin r0_decode (
+          .ascii (cmd[i*8-1-:8]),
+          .nibble(r0[i*4-1-:4])
       );
-      ascii_hex2bin data_decode0 (
-          .ascii (cmd[i+9]),
-          .nibble(data[31-i*4-:4])
+      ascii_hex2bin r1_decode (
+          .ascii (cmd[i*8+63-:8]),
+          .nibble(r1[i*4-1-:4])
       );
     end
   endgenerate
 
   always @(posedge clk) begin
+    if (rw_valid) begin
+      cmd = {18{8'h00}};
+    end
     rw_write <= 0;
     rw_valid <= 0;
+
     if (rst) begin
       //cmd = {18{8'hff}};
-      cmd_len <= 0;
     end else begin
-      if (data_in_valid && cmd_len < 18) begin
+      if (data_in_valid) begin
         //$display("DI: %x (%c) len(%d)", data_in,data_in , cmd_len);
         if (data_in >= 8'h20) begin  // accept value with an chat value above space char(' ')
           //$display("PROTOCOL ADD : %c", data_in);
-          cmd[cmd_len] <= data_in;
-          cmd_len <= cmd_len + 1;
+          cmd = {cmd[17*8-1:0], data_in};  //[cmd_len] <= data_in;
+          // cmd_len <= cmd_len + 1;
         end else if (data_in == "\n") begin
           //$display("CMD0: %c", cmd[0]);
-          if (cmd_len > 0) begin
-            case (cmd[0])
-              "r": begin
-                $display("READ CMD");
-                case (cmd_len)
-                  8 + 1: begin
-                    $display("Read address is 0x%08x", address);
-                    cmd_len <= 0;
-                    if (rw_ready) begin
-                      rw_write <= 0;
-                      rw_valid <= 1;
-                    end else begin
-                      $display("Skip read (RW BUSY)");
-                    end
-                  end
-                  default: begin
-                    $display("Invalid length");
-                    cmd_len <= 0;
-                  end
-                endcase
-              end
-              "w": begin
-                $display("WRITE CMD");
-                case (cmd_len)
-                  16 + 1: begin
-                    $display("Write address is 0x%08x value 0x%08x", address, data);
-                    cmd_len <= 0;
-                    if (rw_ready) begin
-                      rw_write <= 1;
-                      rw_valid <= 1;
-                    end else begin
-                      $display("Skip write (RW BUSY)");
-                    end
-                  end
-                  default: begin
-                    $display("Invalid length");
-                    cmd_len <= 0;
-                  end
-                endcase
-              end
-              default: begin
-                $display("unknown command %x -> %c", cmd[0], cmd[0]);
-                cmd_len <= 0;
-              end
-            endcase
+          if (cmd[9*8-1-:8] == "r") begin
+            //$display("READ CMD");
+            //$display("Read address is 0x%08x", r0);
+            if (rw_ready) begin
+              rw_write   <= 0;
+              rw_valid   <= 1;
+              rw_address <= r0;
+            end else begin
+              $display("Skip read (RW BUSY)");
+            end
+          end
+          if (cmd[17*8-1-:8] == "w") begin
+            //$display("WRITE CMD");
+            //$display("Write address is 0x%08x value 0x%08x", r1, r0);
+            if (rw_ready) begin
+              rw_write <= 1;
+              rw_valid <= 1;
+              rw_address <= r1;
+              rw_data <= r0;
+            end else begin
+              $display("Skip write (RW BUSY)");
+            end
           end
         end else if (data_in == 8'h00) begin
           $display("PROTOCOL RESET");
-          cmd_len <= 0;
+          cmd = {18{8'h00}};
         end else begin
           $display("UNCAPTURED VALUE: %c", data_in);
         end
