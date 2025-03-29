@@ -166,9 +166,12 @@ module wb_uart_master_tb ();
     repeat (1000) @(posedge clk);
     write({{"r00000000\n"}, {30{8'h41}}}, 10);
     repeat (1000) @(posedge clk);
-    write({{"r00000000\n"}, {30{8'h41}}}, 10);
+    write({{"w00000000000000aa\n"}, {22{8'h41}}}, 18);
     repeat (1000) @(posedge clk);
     write({{"r00000000\n"}, {30{8'h41}}}, 10);
+    repeat (1000) @(posedge clk);
+
+    //end
     repeat (100000) @(posedge clk);
     $finish();
   end

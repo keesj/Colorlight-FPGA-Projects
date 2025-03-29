@@ -225,7 +225,7 @@ module wb_uart_master (
       case (uart_out_state)
         UART_OUT_WAIT: begin
           if (encode_data_buf_valid) begin
-            //$display("Set output buffer to %x", encode_data_buf);
+            $display("Set output buffer to %x", encode_data_buf);
             tx_buf[79:0] <= encode_data_buf;
             tx_buf_len   <= 10;
           end else if (uart_echo_valid) begin
@@ -340,7 +340,7 @@ module wishone_request (
               rw_data_out <= wb_data_i;
               state <= WB_WAIT_FOR_RESPONE_READY;
               if (response_data_ready) begin
-                $display("WB DATA %x", wb_data_i);
+                //$display("WB DATA %x", wb_data_i);
                 response_data <= wb_data_i;
                 response_data_valid <= 1;
               end else begin
@@ -353,6 +353,7 @@ module wishone_request (
         end
         WB_WAIT_FOR_RESPONE_READY: begin
           if (response_data_ready) begin
+            //$display("Data acknowleged");
             response_data <= 32'h00_00_00_00;
             response_data_valid <= 0;
             state <= WB_WAIT_FOR_CMD;
