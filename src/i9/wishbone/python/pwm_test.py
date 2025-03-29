@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import serial
 import time
+import itertools
 
 # Configure the serial port settings
 ser = serial.Serial(
@@ -15,7 +16,7 @@ ser = serial.Serial(
 def write(address,data):
     global ser
     # Write data to the serial port
-    ser.write(f'w{address:08x}{data:08x}\n'.encode('latin1'))
+    ser.write(f'\x00w{address:08x}{data:08x}\n'.encode('latin1'))
 
 def read(address):
     global ser
@@ -25,13 +26,20 @@ def read(address):
     return int(f"0{line}",0)
 
 # Read a line and print it
-for i in [1,2,4,8,16]:
-    freq = 25_000_000 // i
-    write(0,freq)
-    print(f"Freq set to {freq}")
-    print(read(0))
-    time.sleep(1)
+#for i in range(40_000,42_000):
+#    freq = 25_000_000 // i  //2
+#    write(0,freq)
+#    print(f"Freq set to {freq}")
+#    print(read(0))
+#    time.sleep(.2)
 
+while(1):
+    for i in itertools.chain(range(320,305,-1),range(305,320)):
+        write(0,i)
+        f =  i *2 * 25000
+        print(f"Freq set to {f}")
+        #print(read(0))
+        time.sleep(.2)
 # Close the serial port
 ser.close()
 

@@ -60,8 +60,8 @@ module pulse (
   // 
   assign gpio[0] = pwm_dp_counter > 0;
   assign gpio[1] = pwm_dn_counter > 0;
-  assign gpio[2] = 1'b0;
-  assign gpio[3] = 1'b0;
+  assign gpio[2] = pwm_dp_counter > 0;
+  assign gpio[3] = pwm_dn_counter > 0;
 
   reg flip_flop;
 
