@@ -104,6 +104,33 @@ module wb_uart_master_tb ();
   );
 
 
+  reg done;
+
+  task read_line(output string line);
+    //$display("READ LINE");
+    line = "";
+    done = 1'h0;
+
+    while (~done) begin
+      while (uart0_reg_dat_do[31:24] == 8'hff) begin
+        @(posedge clk);  // wait for output buffer to be empty
+      end
+      if (uart0_reg_dat_do[7:0] == "\n") begin
+        //$display("REALLY %08d Read String '%s' ", $time(), line);
+        done = 1'h1;
+      end else begin
+        $sformat(line, "%s%c", line, uart0_reg_dat_do[7:0]);
+      end
+
+      uart0_reg_dat_re = 1;
+      do begin
+        @(posedge clk);  // wait for output buffer to be empty
+      end while (uart0_reg_dat_do[31:24] == 8'h00);
+      uart0_reg_dat_re = 0;
+      @(posedge clk);
+    end
+    //$display("DONE READ STRING");
+  endtask
 
   task write(reg [40*8-1:0] cmd, integer len);
     // send tx buffer to uart
@@ -123,6 +150,8 @@ module wb_uart_master_tb ();
       repeat (1) @(posedge clk);
     end
   endtask
+
+  string response;
 
   //test loop
   initial begin
@@ -164,16 +193,29 @@ module wb_uart_master_tb ();
     //$finish();
     write({{"w0000000000000010\n"}, {22{8'h41}}}, 18);
     repeat (1000) @(posedge clk);
+
     write({{"r00000000\n"}, {30{8'h41}}}, 10);
-    repeat (1000) @(posedge clk);
+    read_line(response);
+    $display("Respone: %s", response);
+    assert (response == "x00000010");
+
     write({{"r00000000\n"}, {30{8'h41}}}, 10);
-    repeat (1000) @(posedge clk);
+    read_line(response);
+    $display("Respone: %s", response);
+    assert (response == "x00000010");
+
     write({{"w00000000000000aa\n"}, {22{8'h41}}}, 18);
     repeat (1000) @(posedge clk);
     write({{"r00000000\n"}, {30{8'h41}}}, 10);
+    read_line(response);
+    $display("Respone: %s", response);
+    assert (response == "x000000aa");
+
     repeat (1000) @(posedge clk);
     write({{"r00000000\n"}, {30{8'h41}}}, 10);
-    repeat (1000) @(posedge clk);
+    read_line(response);
+    $display("Respone: %s", response);
+    assert (response == "x000000aa");
 
     //end
     repeat (100000) @(posedge clk);
@@ -181,6 +223,7 @@ module wb_uart_master_tb ();
   end
 
 
+`ifdef SKIP
   initial begin
     $display("Listen to uart");
     @(posedge clk);  // 
@@ -210,6 +253,7 @@ module wb_uart_master_tb ();
       @(posedge clk);
     end
   end
+`endif
 
   reg last_activity;
   always @(posedge clk) begin
