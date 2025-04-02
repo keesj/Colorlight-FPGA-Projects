@@ -225,7 +225,7 @@ module wb_uart_master (
       case (uart_out_state)
         UART_OUT_WAIT: begin
           if (encode_data_buf_valid) begin
-            $display("Set output buffer to %x", encode_data_buf);
+            //$display("Set output buffer to %x", encode_data_buf);
             tx_buf[79:0] <= encode_data_buf;
             tx_buf_len   <= 10;
           end else if (uart_echo_valid) begin

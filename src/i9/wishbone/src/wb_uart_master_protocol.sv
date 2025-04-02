@@ -90,7 +90,7 @@ module uart_cmd_encode (
     end else begin
       data_out_valid <= 0;
       if (data_in_valid) begin
-        $display("Data in valid");
+        //$display("Data in valid");
         data_out[79-:8] <= "x";
         data_out[71:8]  <= encoded_data;
         data_out[7:0]   <= "\n";

@@ -12,8 +12,8 @@ module pulse (
   // The ultrasonic sensor can be driven with 2 MOFSETs that can drive the
   // speaker in twoo directions. This means that during a cycle the 
   //
+  //          <-  di   ->
   //          <--du-->
-  //
   // First wave
   // 1:       |------|
   //          |      |
@@ -27,29 +27,30 @@ module pulse (
   // 0:             -----|      |------|      |-------
   //                                   |      |
   // -1:                               |------|
-  // du: PWM duty
-  // di: PWM divider
-  // ph: Phase of the second wave compared to the first
+  // du: PWM half duty
+  // di: PWM half pulse count
+  // ph: phase of the second wave compared to the first
   // po: pollarity 
   //
   // CPU FREQ
   // 1 Hz is the lowest frequency we can generate
   // 50Khz
   localparam CLK_FREQ = 25_000_000;
-  localparam MAX_DIV = CLK_FREQ / 1 / 2;
-  localparam MAX = CLK_FREQ / 50_000 / 2;
-
-  localparam WIDTH = 32;  //$clog2(MAX_DIV);
-  //localparam PHASE = 60*MAX/360;
+  localparam WIDTH = 32;
 
   reg [WIDTH-1:0] pwm_counter;
-  reg [WIDTH-1:0] pwm_div;
-  reg [WIDTH-1:0] pwm_next_div;
+  reg [WIDTH-1:0] pwm_half_pulse_count;
+  reg [WIDTH-1:0] pwm_next_half_pulse_count;
   reg [WIDTH-1:0] pwm_duty;
   reg [WIDTH-1:0] pwm_dp_counter;
   reg [WIDTH-1:0] pwm_dn_counter;
 
-  assign pulse_div_do = pwm_div;
+  assign pulse_div_do = pwm_half_pulse_count;
+
+  assign gpio[0] = pwm_dp_counter > 0;
+  assign gpio[1] = pwm_dn_counter > 0;
+  assign gpio[2] = pwm_dp_counter > 0;
+  assign gpio[3] = pwm_dn_counter > 0;
 
   // Second wave
   reg [WIDTH-1:0] pwm_phase;
@@ -57,11 +58,6 @@ module pulse (
   reg [WIDTH-1:0] pwm_dp_counter2;
   reg [WIDTH-1:0] pwm_dn_counter2;
 
-  // 
-  assign gpio[0] = pwm_dp_counter > 0;
-  assign gpio[1] = pwm_dn_counter > 0;
-  assign gpio[2] = pwm_dp_counter > 0;
-  assign gpio[3] = pwm_dn_counter > 0;
 
   reg flip_flop;
 
@@ -79,27 +75,25 @@ module pulse (
 
     if (rst) begin
       pwm_counter <= 0;
-      pwm_div <= 10;
-      pwm_next_div <= 10;
-      pwm_duty <= 5;
+      pwm_half_pulse_count <= 10;
+      pwm_next_half_pulse_count <= 10;
+      pwm_duty <= 5;  // TODO?
       flip_flop <= 0;
     end else begin
 
       if (pulse_div_valid) begin
-        //$display("PWM DIV %d", pulse_div_di);
-        pwm_next_div <= pulse_div_di;
+        pwm_next_half_pulse_count <= pulse_div_di;
         pulse_div_ready <= 0;
       end
 
-      if (pwm_counter >= pwm_div) begin
+      if (pwm_counter >= pwm_half_pulse_count) begin
         pwm_counter <= 0;
-        pwm_div <= pwm_next_div;
-        pwm_duty <= pwm_next_div;  // TODO REMOVE
+        pwm_half_pulse_count <= pwm_next_half_pulse_count;
+        pwm_duty <= pwm_next_half_pulse_count;  // TODO REMOVE the tudy is something different
+
         if (flip_flop) begin
-          //          $display("FLIP");
           pwm_dp_counter <= pwm_duty;
         end else begin
-          //         $display("FLOP");
           pwm_dn_counter <= pwm_duty;
         end
         flip_flop <= ~flip_flop;
