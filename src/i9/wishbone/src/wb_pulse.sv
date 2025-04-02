@@ -3,10 +3,10 @@ module pulse (
     input            rst,
     output reg [3:0] gpio,
 
-    input wire [31:0] pulse_div_di,
-    output wire [31:0] pulse_div_do,
-    input wire pulse_div_valid,
-    output reg pulse_div_ready
+    input wire [31:0] half_pulse_count_di,
+    output wire [31:0] half_pulse_count_do,
+    input wire half_pulse_count_valid,
+    output reg half_pulse_count_ready
 );
 
   // The ultrasonic sensor can be driven with 2 MOFSETs that can drive the
@@ -45,7 +45,7 @@ module pulse (
   reg [WIDTH-1:0] pwm_dp_counter;
   reg [WIDTH-1:0] pwm_dn_counter;
 
-  assign pulse_div_do = pwm_half_pulse_count;
+  assign half_pulse_count_do = pwm_half_pulse_count;
 
   assign gpio[0] = pwm_dp_counter > 0;
   assign gpio[1] = pwm_dn_counter > 0;
@@ -68,7 +68,7 @@ module pulse (
     pwm_counter <= pwm_counter + 1;
 
     // registers
-    pulse_div_ready <= 1;
+    half_pulse_count_ready <= 1;
 
     pwm_dp_counter <= pwm_dp_counter_next;
     pwm_dn_counter <= pwm_dn_counter_next;
@@ -81,9 +81,9 @@ module pulse (
       flip_flop <= 0;
     end else begin
 
-      if (pulse_div_valid) begin
-        pwm_next_half_pulse_count <= pulse_div_di;
-        pulse_div_ready <= 0;
+      if (half_pulse_count_valid) begin
+        pwm_next_half_pulse_count <= half_pulse_count_di;
+        half_pulse_count_ready <= 0;
       end
 
       if (pwm_counter >= pwm_half_pulse_count) begin
@@ -122,20 +122,20 @@ module wb_pulse (
 );
 
 
-  reg [31:0] pwm_div_in;
-  reg pwm_div_valid;
-  wire pwm_div_ready;
-  wire [31:0] pwm_div_out;
+  reg [31:0] pwm_half_pulse_count_in;
+  reg pwm_half_pulse_count_valid;
+  wire pwm_half_pulse_count_ready;
+  wire [31:0] pwm_half_pulse_count_out;
 
   pulse pwm (
       .clk (clk),
       .rst (rst),
       .gpio(gpio),
 
-      .pulse_div_di(pwm_div_in),
-      .pulse_div_do(pwm_div_out),
-      .pulse_div_valid(pwm_div_valid),
-      .pulse_div_ready(pwm_div_ready)
+      .half_pulse_count_di(pwm_half_pulse_count_in),
+      .half_pulse_count_do(pwm_half_pulse_count_out),
+      .half_pulse_count_valid(pwm_half_pulse_count_valid),
+      .half_pulse_count_ready(pwm_half_pulse_count_ready)
   );
 
 
@@ -143,13 +143,13 @@ module wb_pulse (
 
 
   always @(posedge clk) begin
-    if (pwm_div_ready) begin
-      pwm_div_valid <= 1'b0;
+    if (pwm_half_pulse_count_ready) begin
+      pwm_half_pulse_count_valid <= 1'b0;
     end
     if (rst) begin
-      pwm_div_in <= 32'h00000000;
-      wb_data_o  <= 32'h00000000;
-      wb_ack_o   <= 0;
+      pwm_half_pulse_count_in <= 32'h00000000;
+      wb_data_o <= 32'h00000000;
+      wb_ack_o <= 0;
       //wb_data_o = 0;
     end else begin
       wb_ack_o <= 0;
@@ -158,16 +158,16 @@ module wb_pulse (
         if (wb_we_i && wb_sel_i == 4'b1111) begin
           case (reg_addr)
             2'd0: begin
-              $display("Pulse Wishbone write DIV %08x value %08x", reg_addr, wb_data_i);
-              if (pwm_div_ready) begin
-                pwm_div_in <= wb_data_i;
-                pwm_div_valid <= 1'b1;
+              $display("Pulse Wishbone write PHPC %08x value %08x", reg_addr, wb_data_i);
+              if (pwm_half_pulse_count_ready) begin
+                pwm_half_pulse_count_in <= wb_data_i;
+                pwm_half_pulse_count_valid <= 1'b1;
               end else begin
                 $display("DIV BUSY");
               end
             end
             2'd1: begin
-              $display("Pulse Wishbone write PWM %08x value %08x", reg_addr, wb_data_i);
+              $display("Pulse Wishbone write PWM %08x .... value %08x", reg_addr, wb_data_i);
             end
             2'd2: begin
               $display("Pulse Wishbone write PHASE_SHIFT %08x value %08x", reg_addr, wb_data_i);
@@ -180,8 +180,9 @@ module wb_pulse (
         end else begin
           case (reg_addr)
             2'd0: begin
-              $display("Pulse Wishbone read DIV %08x value %08x", reg_addr, pwm_div_out);
-              wb_data_o <= pwm_div_out;
+              $display("Pulse Wishbone read PHPC %08x value %08x", reg_addr,
+                       pwm_half_pulse_count_out);
+              wb_data_o <= pwm_half_pulse_count_out;
             end
             2'd1: begin
               $display("Pulse Wishbone read PWM %08x value %08x", reg_addr, wb_data_i);

@@ -203,7 +203,6 @@ module wb_uart_master_tb ();
     //$display("Respone: %s", response);
     assert (response == "x00000010");
 
-    $finish();
     write({{"w00000000000000aa\n"}, {22{8'h41}}}, 18);
     repeat (1000) @(posedge clk);
     write({{"r00000000\n"}, {30{8'h41}}}, 10);
