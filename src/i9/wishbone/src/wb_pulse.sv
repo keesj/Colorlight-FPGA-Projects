@@ -12,7 +12,7 @@ module pulse (
   // The ultrasonic sensor can be driven with 2 MOFSETs that can drive the
   // speaker in twoo directions. This means that during a cycle the 
   //
-  //          <-  di   ->
+  //          <- hdpc   ->
   //          <--du-->
   // First wave
   // 1:       |------|
@@ -27,58 +27,73 @@ module pulse (
   // 0:             -----|      |------|      |-------
   //                                   |      |
   // -1:                               |------|
-  // du: PWM half duty
+  // du: PWM half duty pulse count
   // di: PWM half pulse count
   // ph: phase of the second wave compared to the first
   // po: pollarity 
   //
   // CPU FREQ
   // 1 Hz is the lowest frequency we can generate
-  // 50Khz
+  // 50Khz is typical
   localparam CLK_FREQ = 25_000_000;
   localparam WIDTH = 32;
 
   reg [WIDTH-1:0] pwm_counter;
   reg [WIDTH-1:0] pwm_half_pulse_count;
-  reg [WIDTH-1:0] pwm_next_half_pulse_count;
   reg [WIDTH-1:0] pwm_duty;
   reg [WIDTH-1:0] pwm_dp_counter;
   reg [WIDTH-1:0] pwm_dn_counter;
 
+  reg [WIDTH-1:0] pwm_next_half_pulse_count;
+
   assign half_pulse_count_do = pwm_half_pulse_count;
 
-  assign gpio[0] = pwm_dp_counter > 0;
-  assign gpio[1] = pwm_dn_counter > 0;
-  assign gpio[2] = pwm_dp_counter > 0;
-  assign gpio[3] = pwm_dn_counter > 0;
 
   // Second wave
+  reg [WIDTH-1:0] pwm_counter2;
   reg [WIDTH-1:0] pwm_phase;
   reg pwm_polatiry;
   reg [WIDTH-1:0] pwm_dp_counter2;
   reg [WIDTH-1:0] pwm_dn_counter2;
 
 
+  assign gpio[0] = pwm_dp_counter > 0;
+  assign gpio[1] = pwm_dn_counter > 0;
+  assign gpio[2] = pwm_dp_counter2 > 0;
+  assign gpio[3] = pwm_dn_counter2 > 0;
+
   reg flip_flop;
+  reg flip_flop2;
 
   wire [WIDTH-1:0] pwm_dp_counter_next = (pwm_dp_counter > 0) ? pwm_dp_counter - 1 : 0;
   wire [WIDTH-1:0] pwm_dn_counter_next = (pwm_dn_counter > 0) ? pwm_dn_counter - 1 : 0;
+  wire [WIDTH-1:0] pwm_dp_counter2_next = (pwm_dp_counter2 > 0) ? pwm_dp_counter2 - 1 : 0;
+  wire [WIDTH-1:0] pwm_dn_counter2_next = (pwm_dn_counter2 > 0) ? pwm_dn_counter2 - 1 : 0;
 
   always @(posedge clk) begin
     pwm_counter <= pwm_counter + 1;
+    pwm_counter2 <= pwm_counter2 + 1;
 
     // registers
     half_pulse_count_ready <= 1;
 
     pwm_dp_counter <= pwm_dp_counter_next;
     pwm_dn_counter <= pwm_dn_counter_next;
+    pwm_dp_counter2 <= pwm_dp_counter2_next;
+    pwm_dn_counter2 <= pwm_dn_counter2_next;
 
     if (rst) begin
       pwm_counter <= 0;
-      pwm_half_pulse_count <= 10;
-      pwm_next_half_pulse_count <= 10;
-      pwm_duty <= 5;  // TODO?
+      pwm_half_pulse_count <= 116;
+      pwm_next_half_pulse_count <= 16;
+      pwm_duty <= 16;  // TODO?
+      pwm_phase <= 3;  // TODO?
       flip_flop <= 0;
+      flip_flop2 <= 0;
+      pwm_dp_counter <= 0;
+      pwm_dn_counter <= 0;
+      pwm_dp_counter2 <= 0;
+      pwm_dn_counter2 <= 0;
     end else begin
 
       if (half_pulse_count_valid) begin
@@ -86,10 +101,25 @@ module pulse (
         half_pulse_count_ready <= 0;
       end
 
+      if (pwm_counter == pwm_phase) begin
+        pwm_counter2 <= 0;
+      end
+
+      if (pwm_counter2 >= pwm_half_pulse_count) begin
+        pwm_counter2 <= 0;
+
+        if (flip_flop2) begin
+          pwm_dp_counter2 <= pwm_duty;
+        end else begin
+          pwm_dn_counter2 <= pwm_duty;
+        end
+        flip_flop2 <= ~flip_flop2;
+      end
+
       if (pwm_counter >= pwm_half_pulse_count) begin
         pwm_counter <= 0;
         pwm_half_pulse_count <= pwm_next_half_pulse_count;
-        pwm_duty <= pwm_next_half_pulse_count;  // TODO REMOVE the tudy is something different
+        pwm_duty <= pwm_next_half_pulse_count;  // TODO REMOVE the duty is something different
 
         if (flip_flop) begin
           pwm_dp_counter <= pwm_duty;
@@ -163,7 +193,7 @@ module wb_pulse (
                 pwm_half_pulse_count_in <= wb_data_i;
                 pwm_half_pulse_count_valid <= 1'b1;
               end else begin
-                $display("DIV BUSY");
+                $display("PHPC BUSY");
               end
             end
             2'd1: begin
