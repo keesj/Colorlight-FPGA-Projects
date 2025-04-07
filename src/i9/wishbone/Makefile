@@ -2,6 +2,7 @@ IP= $(shell find ip -name "*.sv")
 SRC= $(shell find src -name "*.sv")
 TB_SRC= $(shell find tb -name "*.sv")
 
+SIM_FLAGS=-DSIMULATION
 # synth/prograamming options
 OUT_DIR=out/
 ECPDAP_OPTS=-f 500
@@ -10,8 +11,8 @@ default: uart-master_tb
 
 .PHONY: uart-master_tb
 uart-master_tb: tb/wb_uart_master_tb.sv src/wb_pulse.sv $(SRC) $(IP)
-	verilator --top-module wb_uart_master_tb --timing --lint-only $^
-	iverilog -o $@ -g2012 $^
+	verilator -DSIMULATION --top-module wb_uart_master_tb --timing --lint-only $^
+	iverilog -DSIMULATION -o $@ -g2012 $^
 	./$@
 
 format-sources:$(SRC)
@@ -22,7 +23,7 @@ format-sources:$(SRC)
 $(OUT_DIR)design.json: synth/top.sv src/wb_pulse.sv $(SRC) $(IP)
 	verilator --top-module top --timing --lint-only $^
 	mkdir -p $(OUT_DIR)
-	yosys -p "synth_ecp5 -json $@" $^
+	yosys -m slang -p "read_slang $^; synth_ecp5 -json $@"
 
 $(OUT_DIR)design.config: $(OUT_DIR)design.json
 	nextpnr-ecp5 --45k --package CABGA381 --speed 6 --json $< --textcfg $@ --lpf synth/top.lpf --freq 65

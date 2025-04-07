@@ -5,6 +5,12 @@
 
 module wb_uart_master_tb ();
 
+localparam CLK_FREQ = 25_000_000;
+`ifdef SIMULATION
+  localparam UART_DIVIDER = 10;
+`else
+  localparam UART_DIVIDER = CLK_FREQ / 115200;
+`endif
   //clock generation
   reg clk;
   initial clk = 0;
@@ -177,7 +183,7 @@ module wb_uart_master_tb ();
     @(posedge clk);
 
     //write divider and wait 
-    uart0_reg_div_di = 217;
+    uart0_reg_div_di = UART_DIVIDER;
     uart0_reg_div_we = 4'b1111;
 
     do begin

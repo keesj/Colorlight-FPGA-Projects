@@ -20,7 +20,11 @@ module wb_uart_master (
 );
 
   localparam CLK_FREQ = 25_000_000;
+`ifdef SIMULATION
+  localparam UART_DIVIDER = 10;
+`else
   localparam UART_DIVIDER = CLK_FREQ / 115200;
+`endif
   localparam ECHO = 0;
 
 
