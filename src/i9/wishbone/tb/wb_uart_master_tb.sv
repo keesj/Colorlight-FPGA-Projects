@@ -5,7 +5,7 @@
 
 module wb_uart_master_tb ();
 
-localparam CLK_FREQ = 25_000_000;
+  localparam CLK_FREQ = 25_000_000;
 `ifdef SIMULATION
   localparam UART_DIVIDER = 10;
 `else
@@ -197,32 +197,31 @@ localparam CLK_FREQ = 25_000_000;
     //write(tx_buf, 19);
 
     //$finish();
-    write({{"w0000000000000010\n"}, {22{8'h41}}}, 18);
+    write({{"w0000000100000010\n"}, {22{8'h41}}}, 18);
     repeat (1000) @(posedge clk);
 
-    write({{"r00000000\n"}, {30{8'h41}}}, 10);
+    write({{"r00000001\n"}, {30{8'h41}}}, 10);
     read_line(response);
     assert (response == "x00000010");
 
-    write({{"r00000000\n"}, {30{8'h41}}}, 10);
+    write({{"r00000001\n"}, {30{8'h41}}}, 10);
     read_line(response);
     //$display("Respone: %s", response);
     assert (response == "x00000010");
 
-    write({{"w00000000000000aa\n"}, {22{8'h41}}}, 18);
+    write({{"w00000001000000aa\n"}, {22{8'h41}}}, 18);
     repeat (1000) @(posedge clk);
-    write({{"r00000000\n"}, {30{8'h41}}}, 10);
+    write({{"r00000001\n"}, {30{8'h41}}}, 10);
     read_line(response);
     //$display("Respone: %s", response);
     assert (response == "x000000aa");
 
     repeat (1000) @(posedge clk);
-    write({{"r00000000\n"}, {30{8'h41}}}, 10);
+    write({{"r00000001\n"}, {30{8'h41}}}, 10);
     read_line(response);
     assert (response == "x000000aa");
 
     //end
-    repeat (100000) @(posedge clk);
     $finish();
   end
 

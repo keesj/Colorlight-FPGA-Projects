@@ -2,15 +2,15 @@ typedef struct packed {
   reg [31:0] cnt;
   reg [31:0] duty;
   reg [31:0] phase;
-}  pwm_regs_t;
+} pwm_regs_t;
 
 module pulse (
     input            clk,
     input            rst,
     output reg [3:0] gpio,
-    
-    input pwm_regs_t regs_i,
-    wire pwm_regs_t regs_o,
+
+    input wire pwm_regs_t regs_i,
+    output wire pwm_regs_t regs_o,
     input wire [31:0] half_pulse_count_di,
     output wire [31:0] half_pulse_count_do,
     input wire half_pulse_count_valid,
@@ -166,13 +166,14 @@ module wb_pulse (
   wire [31:0] pwm_half_pulse_count_out;
 
   pwm_regs_t pwm_regs;
+  pwm_regs_t pwm_regs_o;
 
   pulse pwm (
-      .clk (clk),
-      .rst (rst),
+      .clk(clk),
+      .rst(rst),
       .gpio(gpio),
       .regs_i(pwm_regs),
-      .regs_o(pwm_regs),
+      .regs_o(pwm_regs_o),
 
       .half_pulse_count_di(pwm_half_pulse_count_in),
       .half_pulse_count_do(pwm_half_pulse_count_out),
@@ -181,7 +182,7 @@ module wb_pulse (
   );
 
 
-  wire [1:0] reg_addr = wb_addr_i[1:0];
+  wire [2:0] reg_addr = wb_addr_i[2:0];
 
 
   always @(posedge clk) begin
@@ -199,7 +200,10 @@ module wb_pulse (
         wb_ack_o <= 1;
         if (wb_we_i && wb_sel_i == 4'b1111) begin
           case (reg_addr)
-            2'd0: begin
+            3'd0: begin
+              $display("Commit changes");
+            end
+            3'd1: begin
               $display("Pulse Wishbone write PHPC %08x value %08x", reg_addr, wb_data_i);
               pwm_regs.cnt = wb_data_i;
               if (pwm_half_pulse_count_ready) begin
@@ -209,35 +213,41 @@ module wb_pulse (
                 $display("PHPC BUSY");
               end
             end
-            2'd1: begin
+            3'd2: begin
               $display("Pulse Wishbone write PWM %08x .... value %08x", reg_addr, wb_data_i);
             end
-            2'd2: begin
+            3'd3: begin
               $display("Pulse Wishbone write PHASE_SHIFT %08x value %08x", reg_addr, wb_data_i);
             end
-            2'd3: begin
+            3'd4: begin
               $display("Pulse Wishbone write Duty %08x value %08x", reg_addr, wb_data_i);
+            end
+            default: begin
+              $display("Pulse write: Invalid address %x", reg_addr);
             end
           endcase
           //$display("Pulse Wishbone write on address %08x value %08x", reg_addr, wb_data_i);
         end else begin
           case (reg_addr)
-            2'd0: begin
+            3'd1: begin
               $display("Pulse Wishbone read PHPC %08x value %08x", reg_addr,
                        pwm_half_pulse_count_out);
               wb_data_o <= pwm_half_pulse_count_out;
             end
-            2'd1: begin
+            3'd2: begin
               $display("Pulse Wishbone read PWM %08x value %08x", reg_addr, wb_data_i);
               wb_data_o <= 32'hc0de0192;
             end
-            2'd2: begin
+            3'd3: begin
               $display("Pulse Wishbone read PHASE_SHIFT %08x value %08x", reg_addr, wb_data_i);
               wb_data_o <= 32'hc0de0196;
             end
-            2'd3: begin
+            3'd4: begin
               $display("Pulse Wishbone write XXX %08x value %08x", reg_addr, wb_data_i);
               wb_data_o <= 32'hc0de2000;
+            end
+            default: begin
+              $display("Pulse read: Invalid address %x", reg_addr);
             end
           endcase
           //$display("Pulse Wishbone read on address %08x", reg_addr);
