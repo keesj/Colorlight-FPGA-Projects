@@ -11,7 +11,6 @@ module pulse (
 
     input wire pwm_regs_t regs_i,
     output wire pwm_regs_t regs_o,
-    input wire [31:0] half_pulse_count_di,
     output wire [31:0] half_pulse_count_do,
     input wire half_pulse_count_valid,
     output reg half_pulse_count_ready
@@ -105,7 +104,7 @@ module pulse (
     end else begin
 
       if (half_pulse_count_valid) begin
-        pwm_next_half_pulse_count <= half_pulse_count_di;
+        pwm_next_half_pulse_count <= regs_i.cnt;
         half_pulse_count_ready <= 0;
       end
 
@@ -160,7 +159,6 @@ module wb_pulse (
 );
 
 
-  reg [31:0] pwm_half_pulse_count_in;
   reg pwm_half_pulse_count_valid;
   wire pwm_half_pulse_count_ready;
   wire [31:0] pwm_half_pulse_count_out;
@@ -175,7 +173,6 @@ module wb_pulse (
       .regs_i(pwm_regs),
       .regs_o(pwm_regs_o),
 
-      .half_pulse_count_di(pwm_half_pulse_count_in),
       .half_pulse_count_do(pwm_half_pulse_count_out),
       .half_pulse_count_valid(pwm_half_pulse_count_valid),
       .half_pulse_count_ready(pwm_half_pulse_count_ready)
@@ -190,7 +187,6 @@ module wb_pulse (
       pwm_half_pulse_count_valid <= 1'b0;
     end
     if (rst) begin
-      pwm_half_pulse_count_in <= 32'h00000000;
       wb_data_o <= 32'h00000000;
       wb_ack_o <= 0;
       //wb_data_o = 0;
@@ -202,16 +198,15 @@ module wb_pulse (
           case (reg_addr)
             3'd0: begin
               $display("Commit changes");
-            end
-            3'd1: begin
-              $display("Pulse Wishbone write PHPC %08x value %08x", reg_addr, wb_data_i);
-              pwm_regs.cnt = wb_data_i;
               if (pwm_half_pulse_count_ready) begin
-                pwm_half_pulse_count_in <= wb_data_i;
                 pwm_half_pulse_count_valid <= 1'b1;
               end else begin
                 $display("PHPC BUSY");
               end
+            end
+            3'd1: begin
+              $display("Pulse Wishbone write PHPC %08x value %08x", reg_addr, wb_data_i);
+              pwm_regs.cnt = wb_data_i;
             end
             3'd2: begin
               $display("Pulse Wishbone write PWM %08x .... value %08x", reg_addr, wb_data_i);

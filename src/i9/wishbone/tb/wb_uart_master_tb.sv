@@ -198,7 +198,7 @@ module wb_uart_master_tb ();
 
     //$finish();
     write({{"w0000000100000010\n"}, {22{8'h41}}}, 18);
-    repeat (1000) @(posedge clk);
+    write({{"w0000000000000000\n"}, {22{8'h41}}}, 18);
 
     write({{"r00000001\n"}, {30{8'h41}}}, 10);
     read_line(response);
@@ -210,7 +210,7 @@ module wb_uart_master_tb ();
     assert (response == "x00000010");
 
     write({{"w00000001000000aa\n"}, {22{8'h41}}}, 18);
-    repeat (1000) @(posedge clk);
+    write({{"w0000000000000000\n"}, {22{8'h41}}}, 18);
     write({{"r00000001\n"}, {30{8'h41}}}, 10);
     read_line(response);
     //$display("Respone: %s", response);
