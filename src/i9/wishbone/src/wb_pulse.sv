@@ -11,8 +11,8 @@ module pulse (
 
     input wire pwm_regs_t regs_i,
     output wire pwm_regs_t regs_o,
-    input wire half_pulse_count_valid,
-    output reg half_pulse_count_ready
+    input wire regs_i_valid,
+    output reg regs_i_ready
 );
 
   // The ultrasonic sensor can be driven with 2 MOFSETs that can drive the
@@ -79,7 +79,7 @@ module pulse (
     pwm_counter2 <= pwm_counter2 + 1;
 
     // registers
-    half_pulse_count_ready <= 1;
+    regs_i_ready <= 1;
 
     pwm_dp_counter <= pwm_dp_counter_next;
     pwm_dn_counter <= pwm_dn_counter_next;
@@ -105,9 +105,9 @@ module pulse (
       pwm_dn_counter2 <= 0;
     end else begin
 
-      if (half_pulse_count_valid) begin
+      if (regs_i_valid) begin
         regs_next <= regs_i;
-        half_pulse_count_ready <= 0;
+        regs_i_ready <= 0;
       end
 
       if (pwm_counter == pwm_phase) begin
@@ -161,8 +161,8 @@ module wb_pulse (
 );
 
 
-  reg pwm_half_pulse_count_valid;
-  wire pwm_half_pulse_count_ready;
+  reg pwm_regs_i_valid;
+  wire pwm_regs_i_ready;
 
   pwm_regs_t pwm_regs;
   pwm_regs_t pwm_regs_o;
@@ -174,8 +174,8 @@ module wb_pulse (
       .regs_i(pwm_regs),
       .regs_o(pwm_regs_o),
 
-      .half_pulse_count_valid(pwm_half_pulse_count_valid),
-      .half_pulse_count_ready(pwm_half_pulse_count_ready)
+      .regs_i_valid(pwm_regs_i_valid),
+      .regs_i_ready(pwm_regs_i_ready)
   );
 
 
@@ -183,8 +183,8 @@ module wb_pulse (
 
 
   always @(posedge clk) begin
-    if (pwm_half_pulse_count_ready) begin
-      pwm_half_pulse_count_valid <= 1'b0;
+    if (pwm_regs_i_ready) begin
+      pwm_regs_i_valid <= 1'b0;
     end
     if (rst) begin
       wb_data_o <= 32'h00000000;
@@ -199,8 +199,8 @@ module wb_pulse (
           case (reg_addr)
             3'd0: begin
               $display("Commit changes");
-              if (pwm_half_pulse_count_ready) begin
-                pwm_half_pulse_count_valid <= 1'b1;
+              if (pwm_regs_i_ready) begin
+                pwm_regs_i_valid <= 1'b1;
               end else begin
                 $display("Pulse core BUSY while commiting changes");
               end
@@ -230,15 +230,12 @@ module wb_pulse (
             end
             3'd2: begin
               $display("Pulse Wishbone read duty %08x value %08x", reg_addr, wb_data_i);
-              wb_data_o <= 32'hc0de0192;
+              wb_data_o <= pwm_regs_o.duty;
             end
             3'd3: begin
               $display("Pulse Wishbone read PHASE_SHIFT %08x value %08x", reg_addr, wb_data_i);
-              wb_data_o <= 32'hc0de0196;
-            end
-            3'd4: begin
-              $display("Pulse Wishbone write XXX %08x value %08x", reg_addr, wb_data_i);
-              wb_data_o <= 32'hc0de2000;
+              //wb_data_o <= 32'hc0de0196;
+              wb_data_o <= pwm_regs_o.phase;
             end
             default: begin
               $display("Pulse read: Invalid address %x", reg_addr);
