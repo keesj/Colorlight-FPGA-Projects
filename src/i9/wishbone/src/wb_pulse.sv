@@ -11,7 +11,6 @@ module pulse (
 
     input wire pwm_regs_t regs_i,
     output wire pwm_regs_t regs_o,
-    output wire [31:0] half_pulse_count_do,
     input wire half_pulse_count_valid,
     output reg half_pulse_count_ready
 );
@@ -45,15 +44,13 @@ module pulse (
   localparam CLK_FREQ = 25_000_000;
   localparam WIDTH = 32;
 
+  pwm_regs_t regs;
+  pwm_regs_t regs_next;
+  assign regs_o = regs;
+
   reg [WIDTH-1:0] pwm_counter;
-  reg [WIDTH-1:0] pwm_half_pulse_count;
-  reg [WIDTH-1:0] pwm_duty;
   reg [WIDTH-1:0] pwm_dp_counter;
   reg [WIDTH-1:0] pwm_dn_counter;
-
-  reg [WIDTH-1:0] pwm_next_half_pulse_count;
-
-  assign half_pulse_count_do = pwm_half_pulse_count;
 
 
   // Second wave
@@ -90,11 +87,16 @@ module pulse (
     pwm_dn_counter2 <= pwm_dn_counter2_next;
 
     if (rst) begin
+
       pwm_counter <= 0;
-      pwm_half_pulse_count <= 116;
-      pwm_next_half_pulse_count <= 16;
-      pwm_duty <= 16;  // TODO?
-      pwm_phase <= 3;  // TODO?
+      regs_next.cnt <= 20;
+      regs_next.duty <= 15;
+      regs_next.phase <= 3;
+
+      regs.cnt <= 20;
+      regs.duty <= 15;
+      regs.phase <= 3;
+
       flip_flop <= 0;
       flip_flop2 <= 0;
       pwm_dp_counter <= 0;
@@ -104,7 +106,7 @@ module pulse (
     end else begin
 
       if (half_pulse_count_valid) begin
-        pwm_next_half_pulse_count <= regs_i.cnt;
+        regs_next <= regs_i;
         half_pulse_count_ready <= 0;
       end
 
@@ -112,26 +114,26 @@ module pulse (
         pwm_counter2 <= 0;
       end
 
-      if (pwm_counter2 >= pwm_half_pulse_count) begin
+      if (pwm_counter2 >= regs.cnt) begin
         pwm_counter2 <= 0;
 
         if (flip_flop2) begin
-          pwm_dp_counter2 <= pwm_duty;
+          pwm_dp_counter2 <= regs.duty;
         end else begin
-          pwm_dn_counter2 <= pwm_duty;
+          pwm_dn_counter2 <= regs.duty;
         end
         flip_flop2 <= ~flip_flop2;
       end
 
-      if (pwm_counter >= pwm_half_pulse_count) begin
+      if (pwm_counter >= regs.cnt) begin
         pwm_counter <= 0;
-        pwm_half_pulse_count <= pwm_next_half_pulse_count;
-        pwm_duty <= pwm_next_half_pulse_count;  // TODO REMOVE the duty is something different
+        //apply buffered regs
+        regs <= regs_next;
 
         if (flip_flop) begin
-          pwm_dp_counter <= pwm_duty;
+          pwm_dp_counter <= regs.duty;
         end else begin
-          pwm_dn_counter <= pwm_duty;
+          pwm_dn_counter <= regs.duty;
         end
         flip_flop <= ~flip_flop;
       end
@@ -161,7 +163,6 @@ module wb_pulse (
 
   reg pwm_half_pulse_count_valid;
   wire pwm_half_pulse_count_ready;
-  wire [31:0] pwm_half_pulse_count_out;
 
   pwm_regs_t pwm_regs;
   pwm_regs_t pwm_regs_o;
@@ -173,7 +174,6 @@ module wb_pulse (
       .regs_i(pwm_regs),
       .regs_o(pwm_regs_o),
 
-      .half_pulse_count_do(pwm_half_pulse_count_out),
       .half_pulse_count_valid(pwm_half_pulse_count_valid),
       .half_pulse_count_ready(pwm_half_pulse_count_ready)
   );
@@ -188,7 +188,8 @@ module wb_pulse (
     end
     if (rst) begin
       wb_data_o <= 32'h00000000;
-      wb_ack_o <= 0;
+      wb_ack_o  <= 0;
+      pwm_regs = 0;
       //wb_data_o = 0;
     end else begin
       wb_ack_o <= 0;
@@ -201,7 +202,7 @@ module wb_pulse (
               if (pwm_half_pulse_count_ready) begin
                 pwm_half_pulse_count_valid <= 1'b1;
               end else begin
-                $display("PHPC BUSY");
+                $display("Pulse core BUSY while commiting changes");
               end
             end
             3'd1: begin
@@ -209,13 +210,12 @@ module wb_pulse (
               pwm_regs.cnt = wb_data_i;
             end
             3'd2: begin
-              $display("Pulse Wishbone write PWM %08x .... value %08x", reg_addr, wb_data_i);
+              $display("Pulse Wishbone write duty %08x .... value %08x", reg_addr, wb_data_i);
+              pwm_regs.duty = wb_data_i;
             end
             3'd3: begin
               $display("Pulse Wishbone write PHASE_SHIFT %08x value %08x", reg_addr, wb_data_i);
-            end
-            3'd4: begin
-              $display("Pulse Wishbone write Duty %08x value %08x", reg_addr, wb_data_i);
+              pwm_regs.phase = wb_data_i;
             end
             default: begin
               $display("Pulse write: Invalid address %x", reg_addr);
@@ -225,12 +225,11 @@ module wb_pulse (
         end else begin
           case (reg_addr)
             3'd1: begin
-              $display("Pulse Wishbone read PHPC %08x value %08x", reg_addr,
-                       pwm_half_pulse_count_out);
-              wb_data_o <= pwm_half_pulse_count_out;
+              $display("Pulse Wishbone read PHPC %08x value %08x", reg_addr, pwm_regs_o.cnt);
+              wb_data_o <= pwm_regs_o.cnt;
             end
             3'd2: begin
-              $display("Pulse Wishbone read PWM %08x value %08x", reg_addr, wb_data_i);
+              $display("Pulse Wishbone read duty %08x value %08x", reg_addr, wb_data_i);
               wb_data_o <= 32'hc0de0192;
             end
             3'd3: begin
