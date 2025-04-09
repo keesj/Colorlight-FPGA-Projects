@@ -191,7 +191,6 @@ module wb_uart_master_tb ();
       uart0_reg_div_we = 4'b0;
     end while (uart0_reg_dat_wait);
 
-
     write({{"w0000000100000010\n"}, {22{8'h41}}}, 18);
     write({{"w0000000000000000\n"}, {22{8'h41}}}, 18);
 
