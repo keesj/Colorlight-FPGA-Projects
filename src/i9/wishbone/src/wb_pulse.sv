@@ -1,3 +1,4 @@
+`default_nettype none
 `include "structs.vh"
 
 import structs_pkg::*;
@@ -87,6 +88,7 @@ module pulse (
     if (rst) begin
 
       pwm_counter <= 0;
+      pwm_counter2 <= 0;
       regs_next.cnt <= 20;
       regs_next.duty <= 15;
       regs_next.phase <= 3;
@@ -103,12 +105,13 @@ module pulse (
       pwm_dn_counter2 <= 0;
     end else begin
 
-      if (regs_i_valid) begin
+      if (regs_i_valid && regs_i_ready) begin
         regs_next <= regs_i;
         regs_i_ready <= 0;
+        $display("Accept next");
       end
 
-      if (pwm_counter == pwm_phase) begin
+      if (pwm_counter == regs.phase) begin
         pwm_counter2 <= 0;
       end
 
