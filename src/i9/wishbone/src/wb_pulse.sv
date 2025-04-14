@@ -1,9 +1,6 @@
-typedef struct packed {
-  reg [31:0] cnt;
-  reg [31:0] duty;
-  reg [31:0] phase;
-} pwm_regs_t;
+`include "structs.vh"
 
+import structs_pkg::*;
 module pulse (
     input            clk,
     input            rst,
@@ -15,6 +12,7 @@ module pulse (
     output reg regs_i_ready
 );
 
+  import structs_pkg::*;
   // The ultrasonic sensor can be driven with 2 MOFSETs that can drive the
   // speaker in twoo directions. This means that during a cycle the 
   //
@@ -161,6 +159,8 @@ module wb_pulse (
 );
 
 
+  import structs_pkg::*;
+
   reg pwm_regs_i_valid;
   wire pwm_regs_i_ready;
 
@@ -248,3 +248,4 @@ module wb_pulse (
   end
 
 endmodule
+

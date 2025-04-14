@@ -7,12 +7,17 @@ SIM_FLAGS=-DSIMULATION
 OUT_DIR=out/
 ECPDAP_OPTS=-f 500
 
-default: uart-master_tb
+default: uart-master_tb pulse_tb
 
-.PHONY: uart-master_tb
-uart-master_tb: tb/wb_uart_master_tb.sv src/wb_pulse.sv $(SRC) $(IP)
-	verilator -DSIMULATION --top-module wb_uart_master_tb --timing --lint-only $^
-	iverilog -DSIMULATION -o $@ -g2012 $^
+.PHONY: uart-master_tb pulse_tb
+uart-master_tb: tb/wb_uart_master_tb.sv $(SRC) $(IP)
+	verilator -DSIMULATION --top-module wb_uart_master_tb --timing --lint-only -Isrc  $^
+	iverilog -DSIMULATION -o $@ -g2012 -I src $^
+	./$@
+
+pulse_tb: tb/pulse_tb.sv src/wb_pulse.sv 
+	verilator -DSIMULATION --top-module pulse_tb --timing --lint-only -Isrc $^
+	iverilog -DSIMULATION -o $@ -g2012 -I src $^
 	./$@
 
 format-sources:$(SRC)
@@ -21,7 +26,7 @@ format-sources:$(SRC)
 	done
 
 $(OUT_DIR)design.json: synth/top.sv src/wb_pulse.sv $(SRC) $(IP)
-	verilator --top-module top --timing --lint-only $^
+	verilator --top-module top --timing --lint-only -Isrc $^
 	mkdir -p $(OUT_DIR)
 	yosys -m slang -p "read_slang $^; synth_ecp5 -json $@"
 
