@@ -11,7 +11,6 @@ reg [WIDTH-1:0] cnt;
 
 assign out_o = cnt[WIDTH-1] & 1'b1;
 
-
  always @(posedge clk_i) begin
   if (rst_i) begin
     cnt <= 0;

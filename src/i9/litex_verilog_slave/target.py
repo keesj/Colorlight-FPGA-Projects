@@ -26,6 +26,8 @@ from litedram.phy import GENSDRPHY, HalfRateGENSDRPHY
 
 from liteeth.phy.ecp5rgmii import LiteEthPHYRGMII
 
+from wb_slave import WishboneSlave
+
 def main():
     from litex.build.parser import LiteXArgumentParser
     parser = LiteXArgumentParser(platform=colorlight_i5.Platform, description="LiteX SoC on Colorlight I5.")
@@ -69,31 +71,15 @@ def main():
     if args.with_sdcard:
         soc.add_sdcard()
 
-    # The real work
-    led_out = soc.platform.request("user_led_n")
-    soc.specials += Instance("led", i_clk_i = ClockSignal(), i_rst_i = ResetSignal(), o_out_o = led_out )
-    soc.platform.add_source("led.v")
+    # Integrating a verilog module
+    #led_out = soc.platform.request("user_led_n")
+    #soc.specials += Instance("led", i_clk_i = ClockSignal(), i_rst_i = ResetSignal(), o_out_o = led_out )
+    #soc.platform.add_source("led.v")
 
-    # wishbone slave
-    myslave =  Instance("myslave",
-                        i_clk_i = ClockSignal(),
-                        i_rst_i = ResetSignal(),
-                        i_cyc = Signal(name="wb_cyc_i")
-                        )
-#                        i_stb = "wb_stb_i,
-#                        i_we = "wb_we_i,
-##                        i_adr = "wb_addr_i,
-#                        i_dat_w = "wb_data_i,
-#                        i_sel = "wb_sel_i,
-#                        o_ack = "wb_ack_o,
-#                        o_dat_r = "wb_data_o)
-    soc.specials += myslave
-    soc.platform.add_source("slave.v")
-    soc.bus.add_slave(name="myslave", slave=myslave, region=SoCRegion(
-           origin = 0x2000_0000,
-           size   = 32*4,
-     ))
-    #soc.bus.add_slave(name="myslave", slave=self.ws2812.bus, region=SoCRegion(
+    # Custom wishbone slave
+    soc.submodules.myslave = wb_slave = WishboneSlave("wb_slave",0x8000_0000,32*4)
+    wb_slave.glue(soc.platform,soc.platform.request("user_led_n",0))
+    soc.bus.add_slave(wb_slave.name, wb_slave.bus , region=SoCRegion(origin=wb_slave.address, size=wb_slave.size , cached=False))
 
     builder = Builder(soc, **parser.builder_argdict)
     if args.build:
