@@ -10,6 +10,3 @@ flash:$(BIT_FILE)
 
 synth:
 	./target.py --build
-
-sim:
-	./target.py --sim
