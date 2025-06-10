@@ -1,93 +1,50 @@
 #!/usr/bin/env python3
 
-#
-# This file is part of LiteX-Boards.
-#
-# Copyright (c) 2021 Kazumoto Kojima <kkojima@rr.iij4u.or.jp>
-# SPDX-License-Identifier: BSD-2-Clause
-
 from migen import *
-import sys
 
-from litex_boards.targets import colorlight_i5 as board
+
 from litex_boards.platforms import colorlight_i5
+from litex.soc.integration.soc_core import SoCMini
+from litex.soc.integration.builder import Builder
 
-from litex.soc.cores.clock import *
-from litex.soc.integration.soc_core import *
+from migen.genlib.io import CRG
 from litex.soc.integration.soc import SoCRegion
-from litex.soc.integration.builder import *
-from litex.soc.cores.video import VideoHDMIPHY
-from litex.soc.cores.led import LedChaser
-
-from litex.soc.interconnect.csr import *
-
-from litedram.modules import M12L64322A # Compatible with EM638325-6H.
-from litedram.phy import GENSDRPHY, HalfRateGENSDRPHY
-
-from liteeth.phy.ecp5rgmii import LiteEthPHYRGMII
+from litex.soc.cores.uart import UARTWishboneBridge
 
 from wb_slave import WishboneSlave
 
-def main():
-    from litex.build.parser import LiteXArgumentParser
-    parser = LiteXArgumentParser(platform=colorlight_i5.Platform, description="LiteX SoC on Colorlight I5.")
-    parser.add_target_argument("--board",            default="i9",             help="Board type (i9).")
-    parser.add_target_argument("--revision",         default="7.2",            help="Board revision (7.2).")
-    parser.add_target_argument("--sys-clk-freq",     default=60e6, type=float, help="System clock frequency.")
-    ethopts = parser.target_group.add_mutually_exclusive_group()
-    ethopts.add_argument("--with-ethernet",   action="store_true",      help="Enable Ethernet support.")
-    ethopts.add_argument("--with-etherbone",  action="store_true",      help="Enable Etherbone support.")
-    parser.add_target_argument("--remote-ip", default="192.168.1.100",  help="Remote IP address of TFTP server.")
-    parser.add_target_argument("--local-ip",  default="192.168.1.50",   help="Local IP address.")
-    sdopts = parser.target_group.add_mutually_exclusive_group()
-    sdopts.add_argument("--with-spi-sdcard",  action="store_true", help="Enable SPI-mode SDCard support.")
-    sdopts.add_argument("--with-sdcard",      action="store_true", help="Enable SDCard support.")
-    parser.add_target_argument("--eth-phy",          default=0, type=int, help="Ethernet PHY (0 or 1).")
-    parser.add_target_argument("--use-internal-osc", action="store_true", help="Use internal oscillator.")
-    parser.add_target_argument("--sdram-rate",       default="1:1",       help="SDRAM Rate (1:1 Full Rate or 1:2 Half Rate).")
-    viopts = parser.target_group.add_mutually_exclusive_group()
-    viopts.add_argument("--with-video-terminal",    action="store_true", help="Enable Video Terminal (HDMI).")
-    viopts.add_argument("--with-video-framebuffer", action="store_true", help="Enable Video Framebuffer (HDMI).")
-    args = parser.parse_args()
+# Design -------------------------------------------------------------------------------------------
 
-    soc = board.BaseSoC(board=args.board, revision=args.revision,
-        toolchain              = args.toolchain,
-        sys_clk_freq           = args.sys_clk_freq,
-        with_ethernet          = args.with_ethernet,
-        with_etherbone         = args.with_etherbone,
-        local_ip               = args.local_ip,
-        remote_ip              = args.remote_ip,
-        eth_phy                = args.eth_phy,
-        use_internal_osc       = args.use_internal_osc,
-        sdram_rate             = args.sdram_rate,
-        with_video_terminal    = args.with_video_terminal,
-        with_video_framebuffer = args.with_video_framebuffer,
-        with_led_chaser        = False,
-        **parser.soc_argdict
-    )
-    soc.platform.add_extension(colorlight_i5._sdcard_pmod_io)
-    if args.with_spi_sdcard:
-        soc.add_spi_sdcard()
-    if args.with_sdcard:
-        soc.add_sdcard()
+# Create our platform (fpga interface)
+platform = colorlight_i5.Platform(board="i9",revision="7.2")
 
-    # Integrating a verilog module
-    #led_out = soc.platform.request("user_led_n")
-    #soc.specials += Instance("led", i_clk_i = ClockSignal(), i_rst_i = ResetSignal(), o_out_o = led_out )
-    #soc.platform.add_source("led.v")
+# Create our soc (fpga description)
+class BaseSoC(SoCMini):
+    def __init__(self, platform, **kwargs):
+        sys_clk_freq = int(25e6)
 
-    # Custom wishbone slave
-    soc.submodules.myslave = wb_slave = WishboneSlave("wb_slave",0x8000_0000,32*4)
-    wb_slave.glue(soc.platform,soc.platform.request("user_led_n",0))
-    soc.bus.add_slave(wb_slave.name, wb_slave.bus , region=SoCRegion(origin=wb_slave.address, size=wb_slave.size , cached=False))
+        # SoCMini (No CPU, we are controlling the SoC over UART)
+        SoCMini.__init__(self, platform, sys_clk_freq, csr_data_width=32,
+            ident="Little LiteX System On Chip", ident_version=True)
 
-    builder = Builder(soc, **parser.builder_argdict)
-    if args.build:
-        builder.build(**parser.toolchain_argdict)
+        # Clock Reset Generation
+        self.submodules.crg = CRG(platform.request("clk25"), ~platform.request("cpu_reset_n"))
 
-    if args.load:
-        prog = soc.platform.create_programmer()
-        prog.load_bitstream(builder.get_bitstream_filename(mode="sram"))
+        # No CPU, use Serial to control Wishbone bus
+        self.submodules.serial_bridge = UARTWishboneBridge(platform.request("serial"), sys_clk_freq)
+        self.add_wb_master(self.serial_bridge.wishbone)
 
-if __name__ == "__main__":
-    main()
+        # Custom wishbone slave
+        self.submodules.myslave = wb_slave = WishboneSlave("dut",0x2000_0000,32*4)
+        wb_slave.glue(self.platform,platform.request("user_led_n",0))
+        self.bus.add_slave(wb_slave.name, wb_slave.bus , region=SoCRegion(origin=wb_slave.address, size=wb_slave.size , cached=False))
+
+soc = BaseSoC(platform)
+
+# Build --------------------------------------------------------------------------------------------
+
+builder = Builder(soc, output_dir="build", csr_csv="control/csr.csv")
+builder.build(build_name="top")
+
+prog = platform.create_programmer()
+prog.load_bitstream(builder.get_bitstream_filename(mode="sram"))

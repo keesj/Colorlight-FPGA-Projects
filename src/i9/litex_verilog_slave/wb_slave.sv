@@ -19,23 +19,34 @@ module wb_slave
 
 reg [31:0] regs [3:0];
 
+
 wire [1:0] reg_addr = wb_addr_i[1:0];
+
+// Example led blinker
+reg [31:0] counter;
+wire [31:0] counter_max;
+assign counter_max = regs[0];
 
 
 always @(posedge clk_i) begin
   if (rst_i) begin
         led <= 0;
+        counter <= 0;
+        regs[0] <= 32'h1000000;
   end else begin
+    counter <= counter +1;
+    if (counter >= counter_max) begin
+      led <= ~ led;
+      counter <= 0;
+    end
     wb_ack_o <= 1'b0;
     if (wb_stb_i && wb_cyc_i) begin
       wb_ack_o <= 1'b1; // ack transaction
       if (wb_we_i) begin
-        led <= wb_data_i[0];
-        if (wb_sel_i[0]) regs[reg_addr][7:0] = wb_data_i[7:0];
-        if (wb_sel_i[1]) regs[reg_addr][15:8] = wb_data_i[15:8];
-        if (wb_sel_i[2]) regs[reg_addr][23:16] = wb_data_i[23:16];
-        if (wb_sel_i[3]) regs[reg_addr][31:24] = wb_data_i[31:24];
-        $display("Wishbone write on address %08x",addr);
+        if (wb_sel_i == 4'b1111) begin
+          regs[reg_addr] = wb_data_i;
+          $display("Wishbone write on address %08x",addr);
+        end
       end
       wb_data_o <= regs[reg_addr];
     end
