@@ -1,6 +1,7 @@
 module led (
   input clk_i,
   input rst_i,
+  input rst_i,
   output wire out_o
 );
 
