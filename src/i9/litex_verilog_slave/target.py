@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from migen import *
+from litex.build.generic_platform import Subsignal
 
 
 from litex_boards.platforms import colorlight_i5
@@ -13,11 +14,29 @@ from litex.soc.cores.uart import UARTWishboneBridge
 
 from wb_slave import WishboneSlave
 
+from litex.build.sim import SimPlatform
+from litex.build.generic_platform import Pins
 # Design -------------------------------------------------------------------------------------------
 
-# Create our platform (fpga interface)
-platform = colorlight_i5.Platform(board="i9",revision="7.2")
 
+# Create our platform (fpga interface)
+#platform = colorlight_i5.Platform(board="i9",revision="7.2")
+#platform = SimPlatform([ ("user_led_n",0),("clk25",0) ] , [] )
+class Platform(SimPlatform):
+    def __init__(self):
+        _io=  [
+            # Clk / Rst.
+            ("clk25", 0, Pins(1)),
+            ("cpu_reset_n", 0, Pins(2)),
+            ("user_led_n", 0, Pins(3)),
+            ("serial", 0,
+                Subsignal("tx", Pins("J17")),
+                Subsignal("rx", Pins("H18"))
+            ),
+        ]
+        SimPlatform.__init__(self, "SIM", _io)
+
+platform = Platform()
 # Create our soc (fpga description)
 class BaseSoC(SoCMini):
     def __init__(self, platform, **kwargs):

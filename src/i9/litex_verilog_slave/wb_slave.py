@@ -12,7 +12,7 @@ class WishboneSlave(Module):
     # Glue with verilog
     def glue(self,platform,led):
         # Add the source code for the slave
-        platform.add_source("wb_slave.v")
+        platform.add_source("wb_slave.sv")
 
         # Glue the signals from bus.wishone to the ip
         self.specials += Instance(

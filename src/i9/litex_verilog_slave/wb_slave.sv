@@ -1,3 +1,5 @@
+`timescale 1ns/100ps
+
 module wb_slave
 (
   input wire clk_i,
