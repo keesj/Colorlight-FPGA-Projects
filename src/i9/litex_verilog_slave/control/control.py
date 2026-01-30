@@ -3,12 +3,14 @@
 import time
 import random
 
-from litex import RemoteClient
+from litex.tools.remote.comm_uart import CommUART
 
-wb = RemoteClient()
+sys_freg=25e6
+blink_freq = 10 # hz
+blink_counter = sys_freg // blink_freq
+
+wb = CommUART("/dev/ttyACM0")
 wb.open()
-wb.write(0x2000_0000,0xffffffff)
-wb.write(0x2000_0004,0xeeeeeeee)
-print(hex(wb.read(0x2000_0004)))
-print(hex(wb.read(0x2000_0000)))
+wb.write(0x2000_0000,int(blink_counter))
+print(f"Read: {hex(wb.read(0x2000_0000))}")
 wb.close()

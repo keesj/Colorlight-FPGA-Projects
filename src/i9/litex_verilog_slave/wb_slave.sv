@@ -19,14 +19,15 @@ module wb_slave
   output reg led // Debug
 );
 
+// 4 regsiters
 reg [31:0] regs [3:0];
-
-
 wire [1:0] reg_addr = wb_addr_i[1:0];
 
 // Example led blinker
 reg [31:0] counter;
 wire [31:0] counter_max;
+
+//COUNTER_MAX reg0
 assign counter_max = regs[0];
 
 

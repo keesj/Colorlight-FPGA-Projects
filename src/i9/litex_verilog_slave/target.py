@@ -20,7 +20,6 @@ from litex.build.generic_platform import Pins
 
 
 # Create our platform (fpga interface)
-#platform = colorlight_i5.Platform(board="i9",revision="7.2")
 #platform = SimPlatform([ ("user_led_n",0),("clk25",0) ] , [] )
 class Platform(SimPlatform):
     def __init__(self):
@@ -36,7 +35,8 @@ class Platform(SimPlatform):
         ]
         SimPlatform.__init__(self, "SIM", _io)
 
-platform = Platform()
+#platform = Platform()
+platform = colorlight_i5.Platform(board="i9",revision="7.2")
 # Create our soc (fpga description)
 class BaseSoC(SoCMini):
     def __init__(self, platform, **kwargs):
