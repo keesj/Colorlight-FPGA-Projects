@@ -35,7 +35,7 @@ always @(posedge clk_i) begin
   if (rst_i) begin
         led <= 0;
         counter <= 0;
-        regs[0] <= 32'h1000000;
+        regs[0] <= 32'h100000;
   end else begin
     counter <= counter +1;
     if (counter >= counter_max) begin
