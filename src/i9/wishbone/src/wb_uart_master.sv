@@ -5,7 +5,7 @@ module wb_uart_master (
     input  ser_rx,
     output ser_tx,
 
-    //WISHBONE 
+    //WISHBONE
     output wire wb_cyc_i,
     output wire wb_stb_i,
     output wire wb_we_i,

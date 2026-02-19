@@ -143,20 +143,18 @@ module uart_cmd_decode (
     if (rw_valid) begin
       cmd = {18{8'h00}};
     end
+
     rw_write <= 0;
     rw_valid <= 0;
 
     if (rst) begin
-      //cmd = {18{8'hff}};
+      cmd = {18{8'h00}};
     end else begin
       if (data_in_valid) begin
-        //$display("DI: %x (%c) len(%d)", data_in,data_in , cmd_len);
-        if (data_in >= 8'h20) begin  // accept value with an chat value above space char(' ')
-          //$display("PROTOCOL ADD : %c", data_in);
-          cmd = {cmd[17*8-1:0], data_in};  //[cmd_len] <= data_in;
-          // cmd_len <= cmd_len + 1;
-        end else if (data_in == "\n") begin
-          //$display("CMD0: %c", cmd[0]);
+        if (data_in >= 8'h20) begin
+          cmd = {cmd[17*8-1:0], data_in};  //shift ascii data in
+        end else if (data_in == "\n" || data_in == "\r") begin
+          //on newline evaluate cmd buffer
           if (cmd[9*8-1-:8] == "r") begin
             //$display("READ CMD");
             //$display("Read address is 0x%08x", r0);
@@ -169,8 +167,6 @@ module uart_cmd_decode (
             end
           end
           if (cmd[17*8-1-:8] == "w") begin
-            //$display("WRITE CMD");
-            //$display("Write address is 0x%08x value 0x%08x", r1, r0);
             if (rw_ready) begin
               rw_write <= 1;
               rw_valid <= 1;

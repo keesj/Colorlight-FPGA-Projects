@@ -44,7 +44,7 @@ flash: $(OUT_DIR)design.bit
 	ecpdap ${ECPDAP_OPTS} flash write $^
 
 clean:
-	rm -rf *_tb 
+	rm -rf *_tb
 
 deep-clean:clean
 	rm -rf *.vcd out
